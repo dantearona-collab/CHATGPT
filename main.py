@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import ollama
 import sqlite3
 import json
 import os
 import re
+import requests
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -114,6 +114,26 @@ def log_conversation(user_text, response_text, channel="web"):
     conn.commit()
     conn.close()
 
+def call_gemini(prompt):
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+    headers = {"Content-Type": "application/json"}
+    params = {"key": "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"}  # ← Reemplazá esto con tu clave real
+    body = {
+        "contents": [{"parts": [{"text": prompt}]}]
+    }
+
+    try:
+    res = requests.post("http://localhost:11434/api/generate", json={"model": model, "prompt": message}
+)
+
+        
+        
+        res.raise_for_status()
+        data = res.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception as e:
+        return f"Error al conectar con Gemini: {str(e)}"
+
 @app.post("/chat")
 async def chat(msg: Message):
     user_text = msg.message.strip()
@@ -137,19 +157,7 @@ async def chat(msg: Message):
         results = query_properties(filters)
 
     prompt = build_prompt(user_text, results, filters, channel)
-
-    try:
-        resp = ollama.chat(
-            model="llama3.2:3b",
-            messages=[{"role": "user", "content": prompt}],
-        )
-        answer = resp["message"]["content"] if isinstance(resp, dict) and "message" in resp else str(resp)
-    except Exception as e:
-        answer = (
-            "Ups, hubo un problema al generar la respuesta. "
-            "Podés intentar de nuevo en unos segundos o contactarnos por WhatsApp 📱. "
-            f"(Detalle técnico: {str(e)})"
-        )
+    answer = call_gemini(prompt)
 
     log_conversation(user_text, answer, channel)
     return {"response": answer}
