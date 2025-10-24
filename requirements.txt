@@ -2,3 +2,6 @@ fastapi
 uvicorn
 ollama
 pydantic
+requests
+
+
