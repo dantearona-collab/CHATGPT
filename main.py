@@ -117,17 +117,13 @@ def log_conversation(user_text, response_text, channel="web"):
 def call_gemini(prompt):
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
     headers = {"Content-Type": "application/json"}
-    params = {"key": "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"}  # ← Reemplazá esto con tu clave real
+    params = {"key": "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"}  # ← Tu clave actual
     body = {
         "contents": [{"parts": [{"text": prompt}]}]
     }
 
     try:
-    res = requests.post("http://localhost:11434/api/generate", json={"model": model, "prompt": message}
-)
-
-        
-        
+        res = requests.post(url, headers=headers, params=params, json=body)
         res.raise_for_status()
         data = res.json()
         return data["candidates"][0]["content"]["parts"][0]["text"]
