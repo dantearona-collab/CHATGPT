@@ -115,9 +115,6 @@ def log_conversation(user_text, response_text, channel="web"):
     conn.commit()
     conn.close()
 
-# Configurar logging
-logging.basicConfig(level=logging.DEBUG)
-
 def call_gemini(prompt):
     url = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
     headers = {"Content-Type": "application/json"}
