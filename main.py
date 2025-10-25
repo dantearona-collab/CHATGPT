@@ -6,8 +6,10 @@ import json
 import os
 import re
 import requests
+import logging
 from pydantic import BaseModel
 from datetime import datetime
+
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
 LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
