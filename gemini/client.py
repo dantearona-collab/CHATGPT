@@ -39,3 +39,4 @@ def call_gemini_with_rotation(prompt):
         if "403" not in response and "429" not in response and "Quota exceeded" not in response:
             return response
     return "Todas las claves están agotadas o no autorizadas. Verificá la configuración."
+print(f"Usando clave: {key} → Respuesta: {response}")
