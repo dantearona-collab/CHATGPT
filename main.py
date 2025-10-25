@@ -45,6 +45,12 @@ def get_logs(limit: int = 10):
     conn.close()
     return [dict(r) for r in rows]
 
+@app.get("/status")
+def status():
+    test_prompt = "Respondé solo con OK"
+    response = call_gemini_with_rotation(test_prompt)
+    return {"gemini_api": "OK" if "OK" in response else response}
+
 def query_properties(filters=None):
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
