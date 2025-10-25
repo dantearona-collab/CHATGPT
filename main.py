@@ -144,12 +144,12 @@ async def chat(msg: Message):
         results = query_properties(filters)
 
     # 🔍 Adaptar el tono según el canal
-        if channel == "whatsapp":
-            style_hint = "Respondé de forma breve, directa y cálida como si fuera un mensaje de WhatsApp."
-        elif channel == "web":
-            style_hint = "Respondé de forma explicativa, profesional y cálida como si fuera una consulta web."
-        else:
-            style_hint = "Respondé de forma clara y útil."
+    if channel == "whatsapp":
+        style_hint = "Respondé de forma breve, directa y cálida como si fuera un mensaje de WhatsApp."
+    elif channel == "web":
+        style_hint = "Respondé de forma explicativa, profesional y cálida como si fuera una consulta web."
+    else:
+        style_hint = "Respondé de forma clara y útil."
 
     # 🔧 Incluir el estilo en el prompt
     prompt = build_prompt(user_text, results, filters, channel, style_hint)
