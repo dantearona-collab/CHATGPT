@@ -120,57 +120,24 @@ def log_conversation(user_text, response_text, channel="web"):
 logging.basicConfig(level=logging.DEBUG)
 
 def call_gemini(prompt):
-    # Mostrar debug en la interfaz de Streamlit
-    with st.expander("🔧 Debug Info", expanded=False):
-        st.write("**Debug Mode Activado**")
-        st.write(f"Prompt: `{prompt}`")
-    
-    url = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
     headers = {"Content-Type": "application/json"}
-    params = {"key": "AIzaSyALNEvJuxb5FYX6q04XAF6ppzuf4avnOig"}
+    params = {"key": "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"}
     
     body = {
         "contents": [
             {
-                "role": "user",
                 "parts": [{"text": prompt}]
             }
         ]
     }
 
     try:
-        # Debug: mostrar info antes del request
-        logging.debug(f"🔍 Making request to: {url}")
-        
         res = requests.post(url, headers=headers, params=params, json=body, timeout=30)
-        
-        # Debug: mostrar respuesta HTTP
-        logging.debug(f"📡 Response status: {res.status_code}")
-        
         res.raise_for_status()
         data = res.json()
-        
-        # Debug: mostrar estructura completa
-        logging.debug(f"📊 Full response: {data}")
-        
-        response_text = data["candidates"][0]["content"]["parts"][0]["text"]
-        
-        # Debug: mostrar respuesta exitosa
-        logging.debug(f"✅ Success! Response: {response_text[:100]}...")
-        
-        return response_text
-        
+        return data["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
-        # Debug: mostrar error completo
-        logging.error(f"❌ Error details: {str(e)}", exc_info=True)
-        
-        # Mostrar más detalles en Streamlit
-        with st.expander("🚨 Error Details", expanded=False):
-            st.error(f"Error completo: {str(e)}")
-            if 'res' in locals():
-                st.write(f"Status Code: {res.status_code}")
-                st.write(f"Response Text: {res.text}")
-        
         return f"Error al conectar con Gemini: {str(e)}"
 
 @app.post("/chat")
@@ -200,3 +167,22 @@ async def chat(msg: Message):
 
     log_conversation(user_text, answer, channel)
     return {"response": answer}
+# AGREGA ESTO AL FINAL DE TU ARCHIVO main.py
+
+# Función de prueba automática
+def test_gemini():
+    print("🚀 INICIANDO PRUEBA AUTOMÁTICA DE GEMINI")
+    print("=" * 50)
+    
+    resultado = call_gemini("Hola, responde solo con 'OK'")
+    
+    print(f"📝 Resultado final: {resultado}")
+    print("=" * 50)
+
+# Ejecutar prueba automática al importar
+if __name__ == "__main__":
+    import uvicorn
+    print("🚀 Iniciando servidor de Dante Propiedades...")
+    print("📍 URL: http://127.0.0.1:8000")
+    print("📚 Docs: http://127.0.0.1:8000/docs")
+    uvicorn.run(app, host="127.0.0.1", port=8000)
