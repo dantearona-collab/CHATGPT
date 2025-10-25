@@ -120,9 +120,14 @@ def log_conversation(user_text, response_text, channel="web"):
 logging.basicConfig(level=logging.DEBUG)
 
 def call_gemini(prompt):
+    # Mostrar debug en la interfaz de Streamlit
+    with st.expander("🔧 Debug Info", expanded=False):
+        st.write("**Debug Mode Activado**")
+        st.write(f"Prompt: `{prompt}`")
+    
     url = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
     headers = {"Content-Type": "application/json"}
-    params = {"key": "AIzaSyALNEvJAIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"}
+    params = {"key": "AIzaSyALNEvJuxb5FYX6q04XAF6ppzuf4avnOig"}
     
     body = {
         "contents": [
@@ -134,23 +139,39 @@ def call_gemini(prompt):
     }
 
     try:
-        logging.debug(f"Enviando prompt: {prompt}")
+        # Debug: mostrar info antes del request
+        logging.debug(f"🔍 Making request to: {url}")
+        
         res = requests.post(url, headers=headers, params=params, json=body, timeout=30)
         
-        logging.debug(f"Status code: {res.status_code}")
-        logging.debug(f"Respuesta: {res.text}")
+        # Debug: mostrar respuesta HTTP
+        logging.debug(f"📡 Response status: {res.status_code}")
         
         res.raise_for_status()
         data = res.json()
         
-        return data["candidates"][0]["content"]["parts"][0]["text"]
+        # Debug: mostrar estructura completa
+        logging.debug(f"📊 Full response: {data}")
         
-    except requests.exceptions.HTTPError as e:
-        logging.error(f"Error HTTP {res.status_code}: {res.text}")
-        return f"Error HTTP {res.status_code}: {e}"
+        response_text = data["candidates"][0]["content"]["parts"][0]["text"]
+        
+        # Debug: mostrar respuesta exitosa
+        logging.debug(f"✅ Success! Response: {response_text[:100]}...")
+        
+        return response_text
+        
     except Exception as e:
-        logging.error(f"Error: {str(e)}")
-        return f"Error: {str(e)}"
+        # Debug: mostrar error completo
+        logging.error(f"❌ Error details: {str(e)}", exc_info=True)
+        
+        # Mostrar más detalles en Streamlit
+        with st.expander("🚨 Error Details", expanded=False):
+            st.error(f"Error completo: {str(e)}")
+            if 'res' in locals():
+                st.write(f"Status Code: {res.status_code}")
+                st.write(f"Response Text: {res.text}")
+        
+        return f"Error al conectar con Gemini: {str(e)}"
 
 @app.post("/chat")
 async def chat(msg: Message):
