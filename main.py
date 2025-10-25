@@ -6,7 +6,6 @@ import json
 import os
 import re
 import requests
-import logging
 from pydantic import BaseModel
 from datetime import datetime
 
