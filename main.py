@@ -119,13 +119,14 @@ def log_conversation(user_text, response_text, channel="web"):
 logging.basicConfig(level=logging.DEBUG)
 
 def call_gemini(prompt):
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    url = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
     headers = {"Content-Type": "application/json"}
-    params = {"key": "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"}
-    
+    params = {"key": "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"}  # tu clave real
+
     body = {
         "contents": [
             {
+                "role": "user",
                 "parts": [{"text": prompt}]
             }
         ]
@@ -138,7 +139,6 @@ def call_gemini(prompt):
         return data["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
         return f"Error al conectar con Gemini: {str(e)}"
-
 @app.post("/chat")
 async def chat(msg: Message):
     user_text = msg.message.strip()
