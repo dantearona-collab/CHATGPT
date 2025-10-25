@@ -8,6 +8,8 @@ import re
 import requests
 from pydantic import BaseModel
 from datetime import datetime
+from gemini.client import call_gemini_with_rotation
+
 
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
@@ -115,41 +117,9 @@ def log_conversation(user_text, response_text, channel="web"):
     conn.commit()
     conn.close()
 
-def call_gemini(prompt):
-    
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-03-25:generateContent"
-    headers = {"Content-Type": "application/json"}
-    params = {"key": "AIzaSyACoP3Kahg1LCLX8ZrpvZZyfyEjWXclJSw"}  # tu clave real
+# Luego en tu endpoint o lógica:
+response = call_gemini_with_rotation(prompt)
 
-    body = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": prompt}]
-            }
-        ]
-    }
-
-    try:
-        res = requests.post(url, headers=headers, params=params, json=body, timeout=30)
-        res.raise_for_status()
-        data = res.json()
-
-        # Validación defensiva
-        if "candidates" not in data or not data["candidates"]:
-            return "Gemini no devolvió contenido. ¿Querés que lo intentemos de nuevo?"
-
-        content = data["candidates"][0].get("content", {})
-        parts = content.get("parts", [])
-        if not parts or "text" not in parts[0]:
-            return "La respuesta de Gemini está vacía o mal formada."
-
-        return parts[0]["text"]
-
-    except requests.exceptions.HTTPError as http_err:
-        return f"Error HTTP al conectar con Gemini: {http_err.response.status_code} — {http_err.response.text}"
-    except Exception as e:
-        return f"Error al conectar con Gemini: {str(e)}"
 @app.post("/chat")
 async def chat(msg: Message):
     user_text = msg.message.strip()
@@ -173,10 +143,11 @@ async def chat(msg: Message):
         results = query_properties(filters)
 
     prompt = build_prompt(user_text, results, filters, channel)
-    answer = call_gemini(prompt)
+    answer = call_gemini_with_rotation(prompt)
 
     log_conversation(user_text, answer, channel)
     return {"response": answer}
+
 # AGREGA ESTO AL FINAL DE TU ARCHIVO main.py
 
 # Función de prueba automática
@@ -196,3 +167,8 @@ if __name__ == "__main__":
     print("📍 URL: http://127.0.0.1:8000")
     print("📚 Docs: http://127.0.0.1:8000/docs")
     uvicorn.run(app, host="127.0.0.1", port=8000)
+
+resultado = call_gemini("Hola, responde solo con 'OK'")
+
+print(f"📝 Resultado final: {resultado}")
+print("=" * 50)
