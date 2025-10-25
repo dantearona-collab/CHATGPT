@@ -137,11 +137,16 @@ def call_gemini(prompt):
         res.raise_for_status()
         data = res.json()
 
-        # Validación defensiva por si la respuesta no tiene candidatos
-        if "candidates" in data and data["candidates"]:
-            return data["candidates"][0]["content"]["parts"][0]["text"]
-        else:
-            return "Gemini respondió sin contenido. ¿Querés que lo intentemos de nuevo?"
+        # Validación defensiva
+        if "candidates" not in data or not data["candidates"]:
+            return "Gemini no devolvió contenido. ¿Querés que lo intentemos de nuevo?"
+
+        content = data["candidates"][0].get("content", {})
+        parts = content.get("parts", [])
+        if not parts or "text" not in parts[0]:
+            return "La respuesta de Gemini está vacía o mal formada."
+
+        return parts[0]["text"]
 
     except requests.exceptions.HTTPError as http_err:
         return f"Error HTTP al conectar con Gemini: {http_err.response.status_code} — {http_err.response.text}"
