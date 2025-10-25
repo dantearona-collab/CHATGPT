@@ -17,7 +17,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # en producción, usar tu dominio GitHub Pages
+    allow_origins=["*"],  # en producción, usar tu dominio
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,6 +35,12 @@ def root():
         "uso": "Enviar mensaje como JSON: { message: '...', channel: 'web' }"
     }
 
+@app.get("/status")
+def status():
+    test_prompt = "Respondé solo con OK"
+    response = call_gemini_with_rotation(test_prompt)
+    return {"gemini_api": "OK" if "OK" in response else response}
+
 @app.get("/logs")
 def get_logs(limit: int = 10):
     conn = sqlite3.connect(LOG_PATH)
@@ -44,12 +50,6 @@ def get_logs(limit: int = 10):
     rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
-
-@app.get("/status")
-def status():
-    test_prompt = "Respondé solo con OK"
-    response = call_gemini_with_rotation(test_prompt)
-    return {"gemini_api": "OK" if "OK" in response else response}
 
 def query_properties(filters=None):
     conn = sqlite3.connect(DB_PATH)
@@ -72,7 +72,7 @@ def query_properties(filters=None):
     conn.close()
     return [dict(r) for r in rows]
 
-def build_prompt(user_text, results=None, filters=None, channel="web"):
+def build_prompt(user_text, results=None, filters=None, channel="web", style_hint=""):
     whatsapp_tone = channel == "whatsapp"
     if results is not None:
         if results:
@@ -81,7 +81,7 @@ def build_prompt(user_text, results=None, filters=None, channel="web"):
                 for r in results[:5]
             ]
             return (
-                "El usuario está buscando propiedades. Aquí hay resultados relevantes:\n"
+                f"{style_hint}\n\nEl usuario está buscando propiedades. Aquí hay resultados relevantes:\n"
                 + "\n".join(bullets)
                 + "\n\nRedactá una respuesta cálida y profesional que resuma los resultados, "
                 "ofrezca ayuda personalizada y sugiera continuar la conversación por WhatsApp. "
@@ -90,14 +90,14 @@ def build_prompt(user_text, results=None, filters=None, channel="web"):
             )
         else:
             return (
-                "El usuario busca propiedades pero no hay resultados con esos filtros. "
+                f"{style_hint}\n\nEl usuario busca propiedades pero no hay resultados con esos filtros. "
                 "Redactá una respuesta amable que sugiera alternativas cercanas, pida más detalles "
                 "y ofrezca continuar la conversación por WhatsApp. Cerrá con un agradecimiento."
                 + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
             )
     else:
         return (
-            "Actuá como asistente inmobiliario para Dante Propiedades. "
+            f"{style_hint}\n\nActuá como asistente inmobiliario para Dante Propiedades. "
             "Respondé la siguiente consulta de forma cálida, profesional y breve. "
             "Si es posible, ofrecé continuar por WhatsApp y agradecé el contacto."
             + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
@@ -143,7 +143,7 @@ async def chat(msg: Message):
             filters["max_price"] = int(m_price.group(1).replace('.', ''))
         results = query_properties(filters)
 
-    # 🔍 Adaptar el tono según el canal
+    # 🔍 Adaptar el tono según el canal (fuera del bloque condicional)
     if channel == "whatsapp":
         style_hint = "Respondé de forma breve, directa y cálida como si fuera un mensaje de WhatsApp."
     elif channel == "web":
@@ -151,15 +151,12 @@ async def chat(msg: Message):
     else:
         style_hint = "Respondé de forma clara y útil."
 
-    # 🔧 Incluir el estilo en el prompt
     prompt = build_prompt(user_text, results, filters, channel, style_hint)
-    
     answer = call_gemini_with_rotation(prompt)
 
     log_conversation(user_text, answer, channel)
     return {"response": answer}
 
-# Ejecutar prueba automática al importar
 if __name__ == "__main__":
     import uvicorn
     print("🚀 Iniciando servidor de Dante Propiedades...")
