@@ -117,7 +117,7 @@ def log_conversation(user_text, response_text, channel="web"):
 
 def call_gemini(prompt):
     
-    url = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
     headers = {"Content-Type": "application/json"}
     params = {"key": "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"}  # tu clave real
 
