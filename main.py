@@ -114,10 +114,14 @@ def log_conversation(user_text, response_text, channel="web"):
     conn.commit()
     conn.close()
 
+# Configurar logging
+logging.basicConfig(level=logging.DEBUG)
+
 def call_gemini(prompt):
     url = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
     headers = {"Content-Type": "application/json"}
-    params = {"key": "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"}  # ← Tu clave real
+    params = {"key": "AIzaSyALNEvJAIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"}
+    
     body = {
         "contents": [
             {
@@ -128,12 +132,23 @@ def call_gemini(prompt):
     }
 
     try:
-        res = requests.post(url, headers=headers, params=params, json=body)
+        logging.debug(f"Enviando prompt: {prompt}")
+        res = requests.post(url, headers=headers, params=params, json=body, timeout=30)
+        
+        logging.debug(f"Status code: {res.status_code}")
+        logging.debug(f"Respuesta: {res.text}")
+        
         res.raise_for_status()
         data = res.json()
+        
         return data["candidates"][0]["content"]["parts"][0]["text"]
+        
+    except requests.exceptions.HTTPError as e:
+        logging.error(f"Error HTTP {res.status_code}: {res.text}")
+        return f"Error HTTP {res.status_code}: {e}"
     except Exception as e:
-        return f"Error al conectar con Gemini: {str(e)}"
+        logging.error(f"Error: {str(e)}")
+        return f"Error: {str(e)}"
 
 @app.post("/chat")
 async def chat(msg: Message):
