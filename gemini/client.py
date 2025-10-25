@@ -35,8 +35,13 @@ def call_gemini(prompt, api_key):
 # 🔁 Función de rotación de claves
 def call_gemini_with_rotation(prompt):
     for key in API_KEYS:
+        print("=" * 60)
+        print(f"🔁 Probando clave: {key[:10]}...")  # Mostramos solo los primeros 10 caracteres
         response = call_gemini(prompt, key)
-        print(f"Usando clave: {key} → Respuesta: {response}")
+        print(f"📩 Respuesta: {response}")
+        print("=" * 60)
         if "403" not in response and "429" not in response and "Quota exceeded" not in response:
+            print(f"✅ Clave aceptada: {key[:10]}...")
             return response
+    print("❌ Ninguna clave fue aceptada por Gemini.")
     return "Todas las claves están agotadas o no autorizadas. Verificá la configuración."
