@@ -136,7 +136,15 @@ def call_gemini(prompt):
         res = requests.post(url, headers=headers, params=params, json=body, timeout=30)
         res.raise_for_status()
         data = res.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"]
+
+        # Validación defensiva por si la respuesta no tiene candidatos
+        if "candidates" in data and data["candidates"]:
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+        else:
+            return "Gemini respondió sin contenido. ¿Querés que lo intentemos de nuevo?"
+
+    except requests.exceptions.HTTPError as http_err:
+        return f"Error HTTP al conectar con Gemini: {http_err.response.status_code} — {http_err.response.text}"
     except Exception as e:
         return f"Error al conectar con Gemini: {str(e)}"
 @app.post("/chat")
