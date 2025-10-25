@@ -7,7 +7,6 @@ def call_gemini(prompt, api_key):
     body = {
         "contents": [
             {
-                "role": "user",
                 "parts": [{"text": prompt}]
             }
         ]
@@ -37,6 +36,6 @@ def call_gemini(prompt, api_key):
 def call_gemini_with_rotation(prompt):
     for key in API_KEYS:
         response = call_gemini(prompt, key)
-        if "429" not in response and "Quota exceeded" not in response:
+        if "403" not in response and "429" not in response and "Quota exceeded" not in response:
             return response
-    return "Todas las claves están agotadas. Intentá más tarde."
+    return "Todas las claves están agotadas o no autorizadas. Verificá la configuración."
