@@ -10,8 +10,6 @@ from pydantic import BaseModel
 from datetime import datetime
 from gemini.client import call_gemini_with_rotation
 
-
-
 DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
 LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
 
@@ -117,9 +115,6 @@ def log_conversation(user_text, response_text, channel="web"):
     conn.commit()
     conn.close()
 
-# Luego en tu endpoint o lógica:
-response = call_gemini_with_rotation(prompt)
-
 @app.post("/chat")
 async def chat(msg: Message):
     user_text = msg.message.strip()
@@ -148,27 +143,15 @@ async def chat(msg: Message):
     log_conversation(user_text, answer, channel)
     return {"response": answer}
 
-# AGREGA ESTO AL FINAL DE TU ARCHIVO main.py
-
-# Función de prueba automática
-def test_gemini():
-    print("🚀 INICIANDO PRUEBA AUTOMÁTICA DE GEMINI")
-    print("=" * 50)
-    
-    resultado = call_gemini("Hola, responde solo con 'OK'")
-    
-    print(f"📝 Resultado final: {resultado}")
-    print("=" * 50)
-
 # Ejecutar prueba automática al importar
 if __name__ == "__main__":
     import uvicorn
     print("🚀 Iniciando servidor de Dante Propiedades...")
     print("📍 URL: http://127.0.0.1:8000")
     print("📚 Docs: http://127.0.0.1:8000/docs")
+
+    resultado = call_gemini_with_rotation("Hola, responde solo con 'OK'")
+    print(f"📝 Resultado final: {resultado}")
+    print("=" * 50)
+
     uvicorn.run(app, host="127.0.0.1", port=8000)
-
-resultado = call_gemini("Hola, responde solo con 'OK'")
-
-print(f"📝 Resultado final: {resultado}")
-print("=" * 50)
