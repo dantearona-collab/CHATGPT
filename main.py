@@ -143,7 +143,17 @@ async def chat(msg: Message):
             filters["max_price"] = int(m_price.group(1).replace('.', ''))
         results = query_properties(filters)
 
-    prompt = build_prompt(user_text, results, filters, channel)
+    # 🔍 Adaptar el tono según el canal
+        if channel == "whatsapp":
+            style_hint = "Respondé de forma breve, directa y cálida como si fuera un mensaje de WhatsApp."
+        elif channel == "web":
+            style_hint = "Respondé de forma explicativa, profesional y cálida como si fuera una consulta web."
+        else:
+            style_hint = "Respondé de forma clara y útil."
+
+    # 🔧 Incluir el estilo en el prompt
+    prompt = build_prompt(user_text, results, filters, channel, style_hint)
+    
     answer = call_gemini_with_rotation(prompt)
 
     log_conversation(user_text, answer, channel)
