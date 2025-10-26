@@ -21,6 +21,12 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
 LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
 
 app = FastAPI()
+@app.on_event("startup")
+def validate_env():
+
+    if not API_KEYS:
+        raise RuntimeError("❌ No se cargaron claves desde .env")
+
 
 app.add_middleware(
     CORSMiddleware,
