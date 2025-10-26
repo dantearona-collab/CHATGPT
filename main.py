@@ -26,6 +26,23 @@ class Message(BaseModel):
     message: str
     channel: str = "web"  # opcional: "web", "whatsapp", etc.
 
+JSON_PATH = os.path.join(os.path.dirname(__file__), "properties.json")
+
+def cargar_propiedades_json():
+    try:
+        with open(JSON_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"⚠️ Error al cargar properties.json: {e}")
+        return []
+
+def extraer_barrios(propiedades):
+    return sorted(set(p.get("neighborhood", "").lower() for p in propiedades if p.get("neighborhood")))
+
+def extraer_tipos(propiedades):
+    return sorted(set(p.get("tipo", "").lower() for p in propiedades if p.get("tipo")))
+
+
 @app.get("/")
 def root():
     return {
@@ -50,6 +67,8 @@ def get_logs(limit: int = 10):
     rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
 
 def query_properties(filters=None):
     conn = sqlite3.connect(DB_PATH)
@@ -125,6 +144,16 @@ def log_conversation(user_text, response_text, channel="web"):
 async def chat(msg: Message):
     user_text = msg.message.strip()
     channel = msg.channel
+    propiedades_json = cargar_propiedades_json()
+    barrios_disponibles = extraer_barrios(propiedades_json)
+    tipos_disponibles = extraer_tipos(propiedades_json)
+
+    # Agregar contexto dinámico al estilo
+    contexto_dinamico = (
+        f"Barrios disponibles: {', '.join(barrios_disponibles)}.\n"
+        f"Tipos de propiedad disponibles: {', '.join(tipos_disponibles)}."
+    )
+
 
     if not user_text:
         return {"response": "Por favor, escribí tu consulta para que pueda ayudarte 😊"}
@@ -151,7 +180,8 @@ async def chat(msg: Message):
     else:
         style_hint = "Respondé de forma clara y útil."
 
-    prompt = build_prompt(user_text, results, filters, channel, style_hint)
+    prompt = build_prompt(user_text, results, filters, channel, style_hint + "\n" + contexto_dinamico)
+    print("🧠 Prompt enviado a Gemini:\n", prompt)
     answer = call_gemini_with_rotation(prompt)
 
     log_conversation(user_text, answer, channel)
