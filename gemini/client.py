@@ -1,5 +1,5 @@
 import requests
-from .config import API_KEYS, ENDPOINT
+from config import API_KEYS, ENDPOINT  # ← Importación absoluta desde raíz del proyecto
 
 def call_gemini(prompt, api_key):
     headers = {"Content-Type": "application/json"}
@@ -28,7 +28,7 @@ def call_gemini(prompt, api_key):
         return parts[0]["text"]
 
     except requests.exceptions.HTTPError as http_err:
-        return f"Error HTTP al conectar con Gemini: {http_err.response.status_code} — {http_err.response.text}"
+        return f"Error HTTP {http_err.response.status_code}: {http_err.response.text}"
     except Exception as e:
         return f"Error al conectar con Gemini: {str(e)}"
 
@@ -36,12 +36,14 @@ def call_gemini(prompt, api_key):
 def call_gemini_with_rotation(prompt):
     for key in API_KEYS:
         print("=" * 60)
-        print(f"🔁 Probando clave: {key[:10]}...")  # Mostramos solo los primeros 10 caracteres
+        print(f"🔁 Probando clave: {key[:10]}...")
         response = call_gemini(prompt, key)
         print(f"📩 Respuesta: {response}")
         print("=" * 60)
-        if "403" not in response and "429" not in response and "Quota exceeded" not in response:
+
+        if not any(err in response for err in ["403", "429", "Quota exceeded", "Error HTTP"]):
             print(f"✅ Clave aceptada: {key[:10]}...")
             return response
+
     print("❌ Ninguna clave fue aceptada por Gemini.")
     return "Todas las claves están agotadas o no autorizadas. Verificá la configuración."
