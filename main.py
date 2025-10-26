@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from config import API_KEYS  # Importa las claves desde config.py
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import sqlite3
@@ -10,6 +11,12 @@ from pydantic import BaseModel
 from datetime import datetime
 from gemini.client import call_gemini_with_rotation
 
+
+from config import API_KEYS
+for i, key in enumerate(API_KEYS):
+    test = call_gemini_with_rotation("Respondé solo con OK")
+    print(f"🔑 Clave {i+1} ({key[:10]}...): {test}")
+    
 DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
 LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
 
@@ -45,6 +52,34 @@ def extraer_tipos(propiedades):
 def extraer_operaciones(propiedades):
     return sorted(set(p.get("operacion", "").lower() for p in propiedades if p.get("operacion")))
 
+app = FastAPI()
+
+from fastapi import FastAPI
+from config import API_KEYS, MODEL, ENDPOINT
+import requests
+
+app = FastAPI()
+
+@app.get("/debug/model")
+def debug_model():
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "contents": [{"parts": [{"text": "Hola, ¿cómo estás?"}]}]
+    }
+    params = {"key": API_KEYS[0]}
+    response = requests.post(ENDPOINT, headers=headers, params=params, json=payload)
+    return {
+        "status": response.status_code,
+        "response": response.json() if response.ok else response.text
+    }
+
+@app.get("/debug/env")
+def debug_env():
+    return {
+        "keys_loaded": len(API_KEYS),
+        "first_key": API_KEYS[0][:10] if API_KEYS else None
+    }
+    
 @app.get("/")
 def root():
     return {
@@ -212,7 +247,7 @@ async def chat(msg: Message):
     else:
         style_hint = "Respondé de forma clara y útil."
 
-        prompt = build_prompt(user_text, results, filters, channel, style_hint + "\n" + contexto_dinamico + "\n" + contexto_historial)
+    prompt = build_prompt(user_text, results, filters, channel, style_hint + "\n" + contexto_dinamico + "\n" + contexto_historial)
     print("🧠 Prompt enviado a Gemini:\n", prompt)
     answer = call_gemini_with_rotation(prompt)
 
