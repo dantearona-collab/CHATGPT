@@ -38,5 +38,29 @@
     "rooms": 3,
     "sqm": 95,
     "description": "PH interno con patio y parrilla."
+  },
+  {
+    "title": "Terreno",
+    "neighborhood": "Boedo",
+    "price": 600000,
+    "rooms": 0,
+    "sqm": 306,
+    "description": "terreno 8,66x30 m2., superficie construible 2.000 m2"
+  },
+  {
+    "title": "Terreno",
+    "neighborhood": "Recoleta",
+    "price": 800000,
+    "rooms": 0,
+    "sqm": 200,
+    "description": "terreno 8,66x20 m2., superficie construible 1,500 m2"
+  },
+  {
+    "title": "Departamento céntrico 2 amb",
+    "neighborhood": "Balvanera",
+    "price": 55000,
+    "rooms": 1,
+    "sqm": 23,
+    "description": "A metros de Obelisco, ideal renta."
   }
 ]
