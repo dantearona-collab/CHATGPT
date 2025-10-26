@@ -42,6 +42,8 @@ def extraer_barrios(propiedades):
 def extraer_tipos(propiedades):
     return sorted(set(p.get("tipo", "").lower() for p in propiedades if p.get("tipo")))
 
+def extraer_operaciones(propiedades):
+    return sorted(set(p.get("operacion", "").lower() for p in propiedades if p.get("operacion")))
 
 @app.get("/")
 def root():
@@ -84,6 +86,10 @@ def query_properties(filters=None):
         if filters.get("max_price") is not None:
             where_clauses.append("price <= ?")
             params.append(filters["max_price"])
+        if filters.get("operacion"):
+            where_clauses.append("operacion LIKE ?")
+            params.append(f"%{filters['operacion']}%") 
+        
         if where_clauses:
             q += " WHERE " + " AND ".join(where_clauses)
     cur.execute(q, params)
@@ -148,10 +154,12 @@ async def chat(msg: Message):
     barrios_disponibles = extraer_barrios(propiedades_json)
     tipos_disponibles = extraer_tipos(propiedades_json)
 
+    operaciones_disponibles = extraer_operaciones(propiedades_json)
     # Agregar contexto dinámico al estilo
     contexto_dinamico = (
         f"Barrios disponibles: {', '.join(barrios_disponibles)}.\n"
-        f"Tipos de propiedad disponibles: {', '.join(tipos_disponibles)}."
+        f"Tipos de propiedad disponibles: {', '.join(tipos_disponibles)}.\n"
+        f"Tipos de operación disponibles: {', '.join(operaciones_disponibles)}."
     )
 
 
@@ -171,7 +179,11 @@ async def chat(msg: Message):
         if m_price:
             filters["max_price"] = int(m_price.group(1).replace('.', ''))
         results = query_properties(filters)
-
+        m_operacion = re.search(r"(venta|alquiler|temporario)", text_lower)
+        if m_operacion:
+            filters["operacion"] = m_operacion.group(1)
+    
+    
     # 🔍 Adaptar el tono según el canal (fuera del bloque condicional)
     if channel == "whatsapp":
         style_hint = "Respondé de forma breve, directa y cálida como si fuera un mensaje de WhatsApp."
