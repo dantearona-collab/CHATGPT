@@ -70,7 +70,17 @@ def get_logs(limit: int = 10):
     conn.close()
     return [dict(r) for r in rows]
 
-
+def get_historial_canal(canal="web", limite=3):
+    conn = sqlite3.connect(LOG_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT user_message FROM logs WHERE channel = ? ORDER BY id DESC LIMIT ?",
+        (canal, limite)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [r["user_message"] for r in reversed(rows)]
 
 def query_properties(filters=None):
     conn = sqlite3.connect(DB_PATH)
@@ -106,7 +116,7 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
                 for r in results[:5]
             ]
             return (
-                f"{style_hint}\n\nEl usuario está buscando propiedades. Aquí hay resultados relevantes:\n"
+                style_hint + f"\n\nEl usuario está buscando propiedades para {filters.get('operacion', 'consultar')} en {filters.get('neighborhood', 'varios barrios')}. Aquí hay resultados relevantes:\n"
                 + "\n".join(bullets)
                 + "\n\nRedactá una respuesta cálida y profesional que resuma los resultados, "
                 "ofrezca ayuda personalizada y sugiera continuar la conversación por WhatsApp. "
@@ -155,13 +165,18 @@ async def chat(msg: Message):
     tipos_disponibles = extraer_tipos(propiedades_json)
 
     operaciones_disponibles = extraer_operaciones(propiedades_json)
+    historial = get_historial_canal(channel)
+    contexto_historial = "\nHistorial reciente del usuario:\n" + "\n".join(f"- {m}" for m in historial)
+    
     # Agregar contexto dinámico al estilo
     contexto_dinamico = (
         f"Barrios disponibles: {', '.join(barrios_disponibles)}.\n"
         f"Tipos de propiedad disponibles: {', '.join(tipos_disponibles)}.\n"
         f"Tipos de operación disponibles: {', '.join(operaciones_disponibles)}."
     )
-
+    contexto_dinamico += (
+        "\nEjemplo: si el usuario escribe 'venta de departamento en Palermo', ya está indicando que busca comprar."
+    )
 
     if not user_text:
         return {"response": "Por favor, escribí tu consulta para que pueda ayudarte 😊"}
@@ -178,11 +193,16 @@ async def chat(msg: Message):
         m_price = re.search(r"hasta \$?\s*([0-9\.]+)", text_lower)
         if m_price:
             filters["max_price"] = int(m_price.group(1).replace('.', ''))
-        results = query_properties(filters)
-        m_operacion = re.search(r"(venta|alquiler|temporario)", text_lower)
+       
+        m_operacion = re.search(r"(venta|alquiler|temporario|comprar|alquilar)", text_lower)
         if m_operacion:
-            filters["operacion"] = m_operacion.group(1)
-    
+            op = m_operacion.group(1)
+            filters["operacion"] = (
+                "venta" if op in ["venta", "comprar"]
+                else "alquiler" if op in ["alquiler", "alquilar"]
+                else "temporario"
+            )
+        eresults = query_properties(filters)
     
     # 🔍 Adaptar el tono según el canal (fuera del bloque condicional)
     if channel == "whatsapp":
@@ -192,7 +212,7 @@ async def chat(msg: Message):
     else:
         style_hint = "Respondé de forma clara y útil."
 
-    prompt = build_prompt(user_text, results, filters, channel, style_hint + "\n" + contexto_dinamico)
+        prompt = build_prompt(user_text, results, filters, channel, style_hint + "\n" + contexto_dinamico + "\n" + contexto_historial)
     print("🧠 Prompt enviado a Gemini:\n", prompt)
     answer = call_gemini_with_rotation(prompt)
 
