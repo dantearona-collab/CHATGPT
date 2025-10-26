@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from config import API_KEYS  # Importa las claves desde config.py
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -10,23 +10,29 @@ import requests
 from pydantic import BaseModel
 from datetime import datetime
 from gemini.client import call_gemini_with_rotation
+from contextlib import asynccontextmanager
+from config import API_KEYS, ENDPOINT  # ✅ Asegúrate de importar ENDPOINT
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Validación al iniciar
+    if not API_KEYS:
+        import logging
+        logging.warning("⚠️ No se cargaron claves desde .env")
+    yield
+    # Podés agregar lógica de cierre si querés
 
-from config import API_KEYS
+app = FastAPI(lifespan=lifespan)
+
+# Test de claves API al inicio
 for i, key in enumerate(API_KEYS):
     test = call_gemini_with_rotation("Respondé solo con OK")
     print(f"🔑 Clave {i+1} ({key[:10]}...): {test}")
     
 DB_PATH = os.path.join(os.path.dirname(__file__), "propiedades.db")
 LOG_PATH = os.path.join(os.path.dirname(__file__), "conversaciones.db")
-
-app = FastAPI()
-@app.on_event("startup")
-def validate_env():
-
-    if not API_KEYS:
-        raise RuntimeError("❌ No se cargaron claves desde .env")
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,12 +47,12 @@ class Message(BaseModel):
 
 JSON_PATH = os.path.join(os.path.dirname(__file__), "properties.json")
 
-def cargar_propiedades_json():
+def cargar_propiedades_json(filename):
     try:
-        with open(JSON_PATH, "r", encoding="utf-8") as f:
+        with open(filename, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
-        print(f"⚠️ Error al cargar properties.json: {e}")
+        print(f"⚠️ Error al cargar {filename}: {e}")
         return []
 
 def extraer_barrios(propiedades):
@@ -58,13 +64,7 @@ def extraer_tipos(propiedades):
 def extraer_operaciones(propiedades):
     return sorted(set(p.get("operacion", "").lower() for p in propiedades if p.get("operacion")))
 
-app = FastAPI()
 
-from fastapi import FastAPI
-from config import API_KEYS, MODEL, ENDPOINT
-import requests
-
-app = FastAPI()
 
 @app.get("/debug/model")
 def debug_model():
@@ -123,30 +123,43 @@ def get_historial_canal(canal="web", limite=3):
     conn.close()
     return [r["user_message"] for r in reversed(rows)]
 
+
 def query_properties(filters=None):
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
+    
     q = "SELECT id, title, neighborhood, price, rooms, sqm, description FROM properties"
     params = []
+    
     if filters:
         where_clauses = []
+        
         if filters.get("neighborhood"):
             where_clauses.append("neighborhood LIKE ?")
             params.append(f"%{filters['neighborhood']}%")
+            
         if filters.get("max_price") is not None:
             where_clauses.append("price <= ?")
             params.append(filters["max_price"])
-        if filters.get("operacion"):
-            where_clauses.append("operacion LIKE ?")
-            params.append(f"%{filters['operacion']}%") 
+            
+        # ⚠️ TEMPORAL: Comentar el filtro por operación hasta que la BD tenga la columna
+        # if filters.get("operacion"):
+        #     where_clauses.append("operacion LIKE ?")
+        #     params.append(f"%{filters['operacion']}%")
         
         if where_clauses:
             q += " WHERE " + " AND ".join(where_clauses)
+    
+    print(f"🔍 Query ejecutada: {q}")
+    print(f"🔍 Parámetros: {params}")
+    
     cur.execute(q, params)
     rows = cur.fetchall()
     conn.close()
+    
     return [dict(r) for r in rows]
+
 
 def build_prompt(user_text, results=None, filters=None, channel="web", style_hint=""):
     whatsapp_tone = channel == "whatsapp"
@@ -197,68 +210,119 @@ def log_conversation(user_text, response_text, channel="web"):
     conn.commit()
     conn.close()
 
+from fastapi.responses import JSONResponse
+
 @app.post("/chat")
-async def chat(msg: Message):
-    user_text = msg.message.strip()
-    channel = msg.channel
-    propiedades_json = cargar_propiedades_json()
-    barrios_disponibles = extraer_barrios(propiedades_json)
-    tipos_disponibles = extraer_tipos(propiedades_json)
+async def chat(request: Request):
+    try:
+        data = await request.json()
+        user_text = data.get("message", "").strip()
+        channel = data.get("channel", "").strip()
 
-    operaciones_disponibles = extraer_operaciones(propiedades_json)
-    historial = get_historial_canal(channel)
-    contexto_historial = "\nHistorial reciente del usuario:\n" + "\n".join(f"- {m}" for m in historial)
-    
-    # Agregar contexto dinámico al estilo
-    contexto_dinamico = (
-        f"Barrios disponibles: {', '.join(barrios_disponibles)}.\n"
-        f"Tipos de propiedad disponibles: {', '.join(tipos_disponibles)}.\n"
-        f"Tipos de operación disponibles: {', '.join(operaciones_disponibles)}."
-    )
-    contexto_dinamico += (
-        "\nEjemplo: si el usuario escribe 'venta de departamento en Palermo', ya está indicando que busca comprar."
-    )
-
-    if not user_text:
-        return {"response": "Por favor, escribí tu consulta para que pueda ayudarte 😊"}
-
-    text_lower = user_text.lower()
-    filters = None
-    results = None
-
-    if any(k in text_lower for k in ["buscar", "mostrar", "propiedad", "departamento", "casa"]):
-        filters = {}
-        m_barrio = re.search(r"en ([a-zA-Záéíóúñ ]+)", text_lower)
-        if m_barrio:
-            filters["neighborhood"] = m_barrio.group(1).strip()
-        m_price = re.search(r"hasta \$?\s*([0-9\.]+)", text_lower)
-        if m_price:
-            filters["max_price"] = int(m_price.group(1).replace('.', ''))
-       
-        m_operacion = re.search(r"(venta|alquiler|temporario|comprar|alquilar)", text_lower)
-        if m_operacion:
-            op = m_operacion.group(1)
-            filters["operacion"] = (
-                "venta" if op in ["venta", "comprar"]
-                else "alquiler" if op in ["alquiler", "alquilar"]
-                else "temporario"
+        # 🔒 Validación del archivo JSON por canal
+        filename = f"data/{channel}.json"
+        if not os.path.exists(filename):
+            return JSONResponse(
+                content={
+                    "error": f"❌ No existe el archivo: {filename}",
+                    "canal_recibido": channel
+                },
+                media_type="application/json; charset=utf-8"
             )
-        eresults = query_properties(filters)
+
+        propiedades_json = cargar_propiedades_json(filename)
+        barrios_disponibles = extraer_barrios(propiedades_json)
+        tipos_disponibles = extraer_tipos(propiedades_json)
+        operaciones_disponibles = extraer_operaciones(propiedades_json)
+
+        historial = get_historial_canal(channel)
+        contexto_historial = "\nHistorial reciente:\n" + "\n".join(f"- {m}" for m in historial)
+
+        contexto_dinamico = (
+            f"Barrios disponibles: {', '.join(barrios_disponibles)}.\n"
+            f"Tipos de propiedad: {', '.join(tipos_disponibles)}.\n"
+            f"Operaciones disponibles: {', '.join(operaciones_disponibles)}."
+            "\nEjemplo: 'venta de departamento en Palermo' indica búsqueda de compra."
+        )
+
+        text_lower = user_text.lower()
+        filters, results = None, None
+
+        if any(k in text_lower for k in ["buscar", "mostrar", "propiedad", "departamento", "casa"]):
+            filters = {}
+            
+            # Extraer barrio
+            m_barrio = re.search(r"en ([a-zA-Záéíóúñ ]+)", text_lower)
+            if m_barrio:
+                filters["neighborhood"] = m_barrio.group(1).strip()
+
+            # Extraer precio máximo
+            m_price = re.search(r"hasta \$?\s*([0-9\.]+)", text_lower)
+            if m_price:
+                filters["max_price"] = int(m_price.group(1).replace('.', ''))
+
+            # Extraer operación
+            m_operacion = re.search(r"(venta|alquiler|temporario|comprar|alquilar)", text_lower)
+            if m_operacion:
+                op = m_operacion.group(1)
+                filters["operacion"] = (
+                    "venta" if op in ["venta", "comprar"] else
+                    "alquiler" if op in ["alquiler", "alquilar"] else 
+                    "temporario"
+                )
+
+            results = query_properties(filters)
+
+        # 🔍 Adaptar el tono según el canal
+        if channel == "whatsapp":
+            style_hint = "Respondé de forma breve, directa y cálida como si fuera un mensaje de WhatsApp."
+        elif channel == "web":
+            style_hint = "Respondé de forma explicativa, profesional y cálida como si fuera una consulta web."
+        else:
+            style_hint = "Respondé de forma clara y útil."
+
+        prompt = build_prompt(user_text, results, filters, channel, style_hint + "\n" + contexto_dinamico + "\n" + contexto_historial)
+        print("🧠 Prompt enviado a Gemini:\n", prompt)
+        answer = call_gemini_with_rotation(prompt)
+
+        # ✅ Normalizar caracteres problemáticos
+        def normalizar_texto(texto):
+            """Normaliza caracteres problemáticos"""
+            if texto is None:
+                return ""
+            
+            # Reemplazar caracteres problemáticos comunes
+            reemplazos = {
+                'Â¡': '¡', 'Â¿': '¿', 'Ã¡': 'á', 'Ã©': 'é', 
+                'Ã­': 'í', 'Ã³': 'ó', 'Ãº': 'ú', 'Ã±': 'ñ',
+                'Ã': 'í', '¢': 'ó', '£': 'ú', '¤': 'ñ',
+                '¥': 'Á', '¦': 'É', '§': 'Í', '¨': 'Ó',
+                '©': 'Ú', 'ª': 'Ñ', '«': '¡', '¬': '¿',
+                'Â': ''  # Eliminar Â residual
+            }
+            
+            texto_normalizado = texto
+            for malo, bueno in reemplazos.items():
+                texto_normalizado = texto_normalizado.replace(malo, bueno)
+            
+            return texto_normalizado
+
+        # Aplicar normalización
+        answer = normalizar_texto(answer)
+
+        log_conversation(user_text, answer, channel)
+        
+        # ✅ SOLUCIÓN PRINCIPAL: Usar JSONResponse con encoding UTF-8 explícito
+        return JSONResponse(
+            content={"response": answer},
+            media_type="application/json; charset=utf-8"
+        )
     
-    # 🔍 Adaptar el tono según el canal (fuera del bloque condicional)
-    if channel == "whatsapp":
-        style_hint = "Respondé de forma breve, directa y cálida como si fuera un mensaje de WhatsApp."
-    elif channel == "web":
-        style_hint = "Respondé de forma explicativa, profesional y cálida como si fuera una consulta web."
-    else:
-        style_hint = "Respondé de forma clara y útil."
-
-    prompt = build_prompt(user_text, results, filters, channel, style_hint + "\n" + contexto_dinamico + "\n" + contexto_historial)
-    print("🧠 Prompt enviado a Gemini:\n", prompt)
-    answer = call_gemini_with_rotation(prompt)
-
-    log_conversation(user_text, answer, channel)
-    return {"response": answer}
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Error interno del servidor: {str(e)}"},
+            media_type="application/json; charset=utf-8"
+        )
 
 if __name__ == "__main__":
     import uvicorn
