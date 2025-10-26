@@ -1,22 +1,21 @@
-from fastapi import FastAPI, Request
-from config import API_KEYS  # Importa las claves desde config.py
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-import sqlite3
-import json
+"""Backend para Dante Propiedades: procesamiento de consultas, filtros y generación de respuestas vía Gemini."""
 import os
 import re
-import requests
-from pydantic import BaseModel
+import json
+import sqlite3
 from datetime import datetime
-from gemini.client import call_gemini_with_rotation
+import requests
 from contextlib import asynccontextmanager
-from config import API_KEYS, ENDPOINT  # ✅ Asegúrate de importar ENDPOINT
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel
+
+from config import API_KEYS, ENDPOINT
+from gemini.client import call_gemini_with_rotation
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_):
     # Validación al iniciar
     if not API_KEYS:
         import logging
@@ -73,7 +72,7 @@ def debug_model():
         "contents": [{"parts": [{"text": "Hola, ¿cómo estás?"}]}]
     }
     params = {"key": API_KEYS[0]}
-    response = requests.post(ENDPOINT, headers=headers, params=params, json=payload)
+    response = requests.post(ENDPOINT, headers=headers, params=params, json=payload, timeout=25)
     return {
         "status": response.status_code,
         "response": response.json() if response.ok else response.text
@@ -272,7 +271,19 @@ async def chat(request: Request):
                 )
 
             results = query_properties(filters)
+            # 🧠 Generar prompt para Gemini
+            prompt = build_prompt(
+                user_text=user_text,
+                results=results,
+                filters=filters,
+                channel=channel
+            )
 
+            # 🤖 Llamar a Gemini para obtener respuesta
+            respuesta_bot = call_gemini_with_rotation(prompt)
+
+            # 📝 Guardar en logs
+            log_conversation(user_text, respuesta_bot, channel)
         # 🔍 Adaptar el tono según el canal
         if channel == "whatsapp":
             style_hint = "Respondé de forma breve, directa y cálida como si fuera un mensaje de WhatsApp."
