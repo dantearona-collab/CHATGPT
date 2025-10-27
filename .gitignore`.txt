@@ -4,3 +4,4 @@ propiedades.db
 .env
 *.key
 *.pem
+*.env
