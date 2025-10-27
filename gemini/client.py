@@ -1,24 +1,29 @@
 import requests
+import time
 from config import API_KEYS, ENDPOINT  # ← Importación absoluta desde raíz del proyecto
 
-def call_gemini(prompt, api_key):
-    headers = {"Content-Type": "application/json"}
-    params = {"key": api_key}
-    body = {
+def call_gemini(prompt, key):
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+    headers = {
+        "Content-Type": "application/json"
+    }
+    payload = {
         "contents": [
             {
-                "parts": [{"text": prompt}]
+                "parts": [
+                    {"text": prompt}
+                ]
             }
         ]
     }
 
     try:
-        res = requests.post(ENDPOINT, headers=headers, params=params, json=body, timeout=30)
-        res.raise_for_status()
-        data = res.json()
-
-        if "candidates" not in data or not data["candidates"]:
-            return "Gemini no devolvió contenido. ¿Querés que lo intentemos de nuevo?"
+        response = requests.post(f"{url}?key={key}", headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception as e:
+        return f"❌ Error HTTP: {str(e)}"
 
         content = data["candidates"][0].get("content", {})
         parts = content.get("parts", [])
@@ -36,14 +41,18 @@ def call_gemini(prompt, api_key):
 def call_gemini_with_rotation(prompt):
     for key in API_KEYS:
         print("=" * 60)
-        print(f"🔁 Probando clave: {key[:10]}...")
+        print(f"Probando clave: {key[:10]}")
+        start = time.time()
         response = call_gemini(prompt, key)
-        print(f"📩 Respuesta: {response}")
+        duration = time.time() - start
+        print(f"⏱️ Duración con clave {key[:10]}: {duration:.2f} segundos")
+        print(f"Respuesta: {response}")
         print("=" * 60)
-
         if not any(err in response for err in ["403", "429", "Quota exceeded", "Error HTTP"]):
-            print(f"✅ Clave aceptada: {key[:10]}...")
+            print(f"✅ Clave aceptada: {key[:10]}")
             return response
+
+
 
     print("❌ Ninguna clave fue aceptada por Gemini.")
     return "Todas las claves están agotadas o no autorizadas. Verificá la configuración."
