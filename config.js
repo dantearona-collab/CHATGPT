@@ -1,30 +1,37 @@
-// config.js
+// config.js - Configuración para el Chatbot Dante Propiedades
+
 const CONFIG = {
-    // Cambia esta URL por la de tu app en Render
-    API_URL: 'https://tu-app-en-render.onrender.com/chat',
+    // ⚠️ REEMPLAZA CON TU URL REAL DE RENDER
+    API_URL: 'https://chatgpt-eio1.onrender.com/chat',
     
-    // Para desarrollo local
-    // API_URL: 'http://127.0.0.1:8000/chat'
+    // Configuración de la UI
+    UI: {
+        botName: 'Asistente Dante Propiedades',
+        botAvatar: '🏠',
+        userAvatar: '👤',
+        placeholder: 'Escribe tu mensaje sobre propiedades...',
+        thinkingMessage: '🤖 Pensando...',
+        errorMessage: '⚠️ Servicio no disponible. Intenta nuevamente.'
+    },
+    
+    // Timeouts y reintentos
+    NETWORK: {
+        timeout: 30000, // 30 segundos
+        maxRetries: 2,
+        retryDelay: 2000 // 2 segundos
+    },
+    
+    // Mensajes predefinidos
+    MESSAGES: {
+        welcome: '¡Hola! Soy tu asistente de Dante Propiedades. ¿En qué puedo ayudarte?',
+        error: 'Lo siento, hubo un error. Por favor, intenta nuevamente.',
+        timeout: 'La respuesta está tardando más de lo esperado. ¿Podrías intentar con una pregunta más específica?'
+    }
 };
 
-// En tu chat.js
-async function sendMessage(message) {
-    try {
-        const response = await fetch(CONFIG.API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                message: message,
-                channel: 'web'
-            })
-        });
-        
-        const data = await response.json();
-        return data.respuesta_bot || "Sin respuesta";
-    } catch (error) {
-        console.error('Error:', error);
-        return "Error de conexión con el servidor";
-    }
+// Exportar para usar en otros archivos
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = CONFIG; // Para Node.js/Pruebas
+} else {
+    window.CONFIG = CONFIG; // Para navegador
 }
