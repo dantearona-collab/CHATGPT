@@ -350,10 +350,28 @@ async def chat(request: Request):
             media_type="application/json; charset=utf-8"
         )
 
+
 if __name__ == "__main__":
     import uvicorn
-    print("✅ Iniciando servidor de Dante Propiedades...")
-    print("🔗 URL: http://127.0.0.1:8000")
-    print("📄 Docs: http://127.0.0.1:8000/docs")
-    print("*" * 50)
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    print("🎯 INICIANDO SERVIDOR DE DANTE PROPIEDADES...")
+    print("🔗 URL: http://0.0.0.0:8000")
+    print("📄 Docs: http://0.0.0.0:8000/docs")
+    print("🌟 LISTO PARA RENDER.COM")
+    print("#" * 50)
+    
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0",      # ⭐ CAMBIAR de "127.0.0.1" a "0.0.0.0"
+        port=8000, 
+        reload=False         # ⭐ CAMBIAR de True a False (producción)
+    )
+
+
+
+# if __name__ == "__main__":
+#     import uvicorn
+#     print("✅ Iniciando servidor de Dante Propiedades...")
+#     print("🔗 URL: http://127.0.0.1:8000")
+#     print("📄 Docs: http://127.0.0.1:8000/docs")
+#     print("*" * 50)
+#     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
