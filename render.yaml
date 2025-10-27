@@ -5,3 +5,10 @@ services:
     buildCommand: "pip install -r requirements.txt && python db_init.py"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
    
+
+# services:
+#   - type: web
+#     name: dante-chatbot
+#     env: python
+#     buildCommand: pip install -r requirements.txt
+#     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
