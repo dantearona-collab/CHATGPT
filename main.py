@@ -366,25 +366,6 @@ import os
 
 
 # ============================================================
-# KEEP-ALIVE BACKGROUND - MANTIENE RENDER ACTIVO
-# ============================================================
-
-def keep_alive_background():
-    """Mantiene la app activa en segundo plano"""
-    while True:
-        try:
-            # Ping a localhost
-            requests.get("http://localhost:8000/", timeout=5)
-        except:
-            pass
-        time.sleep(600)  # 10 minutos
-
-# Iniciar en segundo plano al arrancar
-keep_alive_thread = threading.Thread(target=keep_alive_background, daemon=True)
-keep_alive_thread.start()
-print("🔒 Keep-alive background iniciado")
-
-# ============================================================
 # INICIO DEL SERVIDOR (tu código actual)
 # ============================================================
 # 
