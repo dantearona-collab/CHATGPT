@@ -1,0 +1,19 @@
+name: Keep Render Alive
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Cada 5 minutos
+  workflow_dispatch:  # Permite ejecución manual
+
+jobs:
+  ping-render:
+    runs-on: ubuntu-latest
+    name: Ping Render Service
+    steps:
+      - name: Ping ChatGPT Backend
+        run: |
+          echo "🕒 $(date) - Haciendo ping a Render..."
+          curl -s -X GET "https://chatgpt-eio1.onrender.com" \
+          -H "User-Agent: GitHub-Actions-KeepAlive/1.0" \
+          -w "Status: %{http_code}, Time: %{time_total}s\n" \
+          --max-time 10
+          echo "✅ Ping completado"
