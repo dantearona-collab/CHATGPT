@@ -2,8 +2,10 @@ import requests
 import time
 from config import API_KEYS, ENDPOINT  # ← Importación absoluta desde raíz del proyecto
 
+
 def call_gemini(prompt, key):
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+    url = "https://generative-language.googleapis.com/v1/models/gemini-pro:generateContent"
+    
     headers = {
         "Content-Type": "application/json"
     }
@@ -17,15 +19,19 @@ def call_gemini(prompt, key):
         ]
     }
 
+    # 🔍 Log de entrada
+    print(f"🔗 URL final: {url}?key={key}")
+    print(f"📩 Prompt enviado: {prompt}")
+    print(f"📦 Payload: {payload}")
+
     try:
         response = requests.post(f"{url}?key={key}", headers=headers, json=payload)
+        print(f"📥 Respuesta cruda: {response.text}")
         response.raise_for_status()
         data = response.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"]
-    except Exception as e:
-        return f"❌ Error HTTP: {str(e)}"
 
-        content = data["candidates"][0].get("content", {})
+        # 🧠 Validación defensiva
+        content = data.get("candidates", [{}])[0].get("content", {})
         parts = content.get("parts", [])
         if not parts or "text" not in parts[0]:
             return "La respuesta de Gemini está vacía o mal formada."
@@ -33,9 +39,11 @@ def call_gemini(prompt, key):
         return parts[0]["text"]
 
     except requests.exceptions.HTTPError as http_err:
-        return f"Error HTTP {http_err.response.status_code}: {http_err.response.text}"
+        return f"❌ Error HTTP {http_err.response.status_code}: {http_err.response.text}"
     except Exception as e:
-        return f"Error al conectar con Gemini: {str(e)}"
+        return f"❌ Error al conectar con Gemini: {str(e)}"
+    
+print(call_gemini("Hola, ¿qué propiedades hay en Palermo?", "AIzaSyCNHuDW5ytZwQzwy3og5ZxYBjV0Tc6oyLU"))
 
 # 🔁 Función de rotación de claves
 def call_gemini_with_rotation(prompt):
@@ -48,6 +56,8 @@ def call_gemini_with_rotation(prompt):
         print(f"⏱️ Duración con clave {key[:10]}: {duration:.2f} segundos")
         print(f"Respuesta: {response}")
         print("=" * 60)
+        if "404" in response:
+            print(f"❌ Clave rechazada: {key[:10]} (modelo no habilitado)")
         if not any(err in response for err in ["403", "429", "Quota exceeded", "Error HTTP"]):
             print(f"✅ Clave aceptada: {key[:10]}")
             return response
