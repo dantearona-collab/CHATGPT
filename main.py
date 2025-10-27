@@ -13,17 +13,27 @@ from pydantic import BaseModel
 
 from config import API_KEYS, ENDPOINT
 from gemini.client import call_gemini_with_rotation
+from routes.chat import router as chat_router
+
+app = FastAPI()
+app.include_router(chat_router)
 
 @asynccontextmanager
-async def lifespan(_):
-    # Validación al iniciar
-    if not API_KEYS:
-        import logging
-        logging.warning("⚠️ No se cargaron claves desde .env")
+async def lifespan(app):
+    print("🔄 Iniciando ciclo de vida...")
     yield
-    # Podés agregar lógica de cierre si querés
+    print("✅ Finalizando ciclo de vida...")
 
 app = FastAPI(lifespan=lifespan)
+
+app.include_router(chat_router)
+
+@app.get("/status")
+def status():
+    test_prompt = "Respondé solo con OK"
+    response = call_gemini_with_rotation(test_prompt)
+    return {"gemini_api": "OK" if "OK" in response else response}
+
 
 # Test de claves API al inicio
 for i, key in enumerate(API_KEYS):
@@ -63,6 +73,17 @@ def extraer_tipos(propiedades):
 def extraer_operaciones(propiedades):
     return sorted(set(p.get("operacion", "").lower() for p in propiedades if p.get("operacion")))
 
+async def chat_endpoint(request: Request):
+    data = await request.json()
+    message = data.get("message")
+    channel = data.get("channel", "web")
+
+    respuesta = call_gemini_with_rotation(message)
+
+    return {
+        "mensaje_recibido": message,
+        "respuesta_bot": respuesta
+    }
 
 
 @app.get("/debug/model")
@@ -93,12 +114,6 @@ def root():
         "método": "POST",
         "uso": "Enviar mensaje como JSON: { message: '...', channel: 'web' }"
     }
-
-@app.get("/status")
-def status():
-    test_prompt = "Respondé solo con OK"
-    response = call_gemini_with_rotation(test_prompt)
-    return {"gemini_api": "OK" if "OK" in response else response}
 
 @app.get("/logs")
 def get_logs(limit: int = 10):
@@ -337,12 +352,8 @@ async def chat(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Iniciando servidor de Dante Propiedades...")
-    print("📍 URL: http://127.0.0.1:8000")
-    print("📚 Docs: http://127.0.0.1:8000/docs")
-
-    resultado = call_gemini_with_rotation("Hola, responde solo con 'OK'")
-    print(f"📝 Resultado final: {resultado}")
-    print("=" * 50)
-
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    print("✅ Iniciando servidor de Dante Propiedades...")
+    print("🔗 URL: http://127.0.0.1:8000")
+    print("📄 Docs: http://127.0.0.1:8000/docs")
+    print("*" * 50)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
