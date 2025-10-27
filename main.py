@@ -3,17 +3,26 @@ import os
 import re
 import json
 import sqlite3
-from datetime import datetime
+import threading
+import time
 import requests
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-
+from datetime import datetime
 from config import API_KEYS, ENDPOINT
 from gemini.client import call_gemini_with_rotation
 from routes.chat import router as chat_router
+
+
+
+
+
+
+
+
 
 app = FastAPI()
 app.include_router(chat_router)
@@ -350,21 +359,60 @@ async def chat(request: Request):
             media_type="application/json; charset=utf-8"
         )
 
+# AL FINAL de main.py, REEMPLAZAR con:
 
+# ⭐ PARA RENDER - Configuración específica
+import os
+
+
+# ============================================================
+# KEEP-ALIVE BACKGROUND - MANTIENE RENDER ACTIVO
+# ============================================================
+
+def keep_alive_background():
+    """Mantiene la app activa en segundo plano"""
+    while True:
+        try:
+            # Ping a localhost
+            requests.get("http://localhost:8000/", timeout=5)
+        except:
+            pass
+        time.sleep(600)  # 10 minutos
+
+# Iniciar en segundo plano al arrancar
+keep_alive_thread = threading.Thread(target=keep_alive_background, daemon=True)
+keep_alive_thread.start()
+print("🔒 Keep-alive background iniciado")
+
+# ============================================================
+# INICIO DEL SERVIDOR (tu código actual)
+# ============================================================
+# 
 if __name__ == "__main__":
     import uvicorn
-    print("🎯 INICIANDO SERVIDOR DE DANTE PROPIEDADES...")
-    print("🔗 URL: http://0.0.0.0:8000")
-    print("📄 Docs: http://0.0.0.0:8000/docs")
-    print("🌟 LISTO PARA RENDER.COM")
-    print("#" * 50)
-    
+    port = int(os.environ.get("PORT", 8000))
+    print(f"🎯 INICIANDO SERVIDOR EN PUERTO: {port}")
     uvicorn.run(
         "main:app", 
-        host="0.0.0.0",      # ⭐ CAMBIAR de "127.0.0.1" a "0.0.0.0"
-        port=8000, 
-        reload=False         # ⭐ CAMBIAR de True a False (producción)
+        host="0.0.0.0", 
+        port=port, 
+        reload=False
     )
+    
+# if __name__ == "__main__":
+#     import uvicorn
+#     print("🎯 INICIANDO SERVIDOR DE DANTE PROPIEDADES...")
+#     print("🔗 URL: http://0.0.0.0:8000")
+#     print("📄 Docs: http://0.0.0.0:8000/docs")
+#     print("🌟 LISTO PARA RENDER.COM")
+#     print("#" * 50)
+    
+#     uvicorn.run(
+#         "main:app", 
+#         host="0.0.0.0",      # ⭐ CAMBIAR de "127.0.0.1" a "0.0.0.0"
+#         port=8000, 
+#         reload=False         # ⭐ CAMBIAR de True a False (producción)
+#     )
 
 
 
