@@ -209,10 +209,11 @@ async def chat(request: Request):
             filename = "data/web.json"
             print(f"⚠️ Usando archivo por defecto: {filename}")
 
-        propiedades_json = cargar_propiedades_json(filename)
+        propiedades_json = cargar_propiedades_json("properties.json")
         barrios_disponibles = extraer_barrios(propiedades_json)
         tipos_disponibles = extraer_tipos(propiedades_json)
         operaciones_disponibles = extraer_operaciones(propiedades_json)
+        
 
         historial = get_historial_canal(channel)
         contexto_historial = "\nHistorial reciente:\n" + "\n".join(f"- {m}" for m in historial) if historial else ""
