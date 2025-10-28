@@ -167,10 +167,21 @@ def cargar_propiedades_a_db():
     except Exception as e:
         print(f"❌ Error cargando propiedades a DB: {e}")
 
+
+
+
 def initialize_databases():
     """Inicializa las bases de datos si no existen"""
     try:
-        # Base de datos de logs
+        # 🔥 FORZAR ELIMINACIÓN DE BASES DE DATOS VIEJAS EN RENDER
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+            print("🗑️ Base de datos propiedades eliminada forzadamente")
+        if os.path.exists(LOG_PATH):
+            os.remove(LOG_PATH)
+            print("🗑️ Base de datos logs eliminada forzadamente")
+        
+        # Base de datos de logs (NUEVO ESQUEMA)
         conn = sqlite3.connect(LOG_PATH)
         cur = conn.cursor()
         cur.execute('''
@@ -188,7 +199,7 @@ def initialize_databases():
         conn.commit()
         conn.close()
         
-        # Base de datos de propiedades
+        # Base de datos de propiedades (NUEVO ESQUEMA COMPLETO)
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute('''
@@ -211,9 +222,11 @@ def initialize_databases():
         # ✅ CARGAR PROPIEDADES DESDE JSON
         cargar_propiedades_a_db()
         
-        print("✅ Bases de datos inicializadas correctamente")
+        print("✅ Bases de datos inicializadas correctamente con nuevo esquema")
     except Exception as e:
         print(f"❌ Error inicializando bases de datos: {e}")
+
+
 
 def cargar_propiedades_json(filename):
     try:
