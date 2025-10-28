@@ -14,67 +14,173 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            padding: 20px;
         }
 
-        /* Contenedor principal */
+        /* Layout principal */
         .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: 90vh;
+        }
+
+        /* Panel de filtros */
+        .filters-panel {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-            overflow: hidden;
-            height: 85vh;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
         }
 
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            color: white;
-            padding: 25px 30px;
+        .filters-header {
             text-align: center;
-            position: relative;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f8f9fa;
         }
 
-        .logo {
+        .logo-container {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
-            margin-bottom: 10px;
+            gap: 12px;
+            margin-bottom: 15px;
         }
 
-        .logo h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin: 0;
-        }
-
-        .logo img {
-            height: 45px;
+        .logo-container img {
+            height: 50px;
             width: auto;
-            filter: brightness(0) invert(1);
         }
 
-        .subtitle {
+        .logo-container h1 {
+            font-size: 20px;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+
+        .filters-title {
             font-size: 16px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .filter-group {
+            margin-bottom: 25px;
+        }
+
+        .filter-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .filter-select, .filter-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 14px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus, .filter-input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+        .range-inputs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .range-inputs input {
+            flex: 1;
+        }
+
+        .filter-buttons {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        /* Área de chat */
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+        }
+
+        .chat-header h2 {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .chat-subtitle {
             opacity: 0.9;
-            font-weight: 300;
+            font-size: 14px;
         }
 
         .status-indicator {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
+            margin-top: 10px;
             font-size: 12px;
+            background: rgba(255,255,255,0.1);
+            padding: 5px 12px;
+            border-radius: 15px;
         }
 
         .status-dot {
@@ -91,14 +197,6 @@
             100% { opacity: 1; }
         }
 
-        /* Área de chat */
-        .chat-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
         .chat-box {
             flex: 1;
             padding: 25px;
@@ -106,14 +204,14 @@
             background: #f8f9fa;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
         }
 
         /* Mensajes */
         .message {
             max-width: 80%;
-            padding: 16px 20px;
-            border-radius: 20px;
+            padding: 15px 20px;
+            border-radius: 18px;
             line-height: 1.5;
             position: relative;
             animation: fadeIn 0.3s ease-in;
@@ -147,87 +245,6 @@
             opacity: 0.7;
         }
 
-        /* Quick actions */
-        .quick-actions {
-            display: flex;
-            gap: 8px;
-            padding: 0 25px 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .quick-section {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-            width: 100%;
-            justify-content: center;
-        }
-
-        .quick-btn {
-            background: white;
-            border: 1px solid #e9ecef;
-            padding: 10px 16px;
-            border-radius: 20px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: #495057;
-            flex: 1;
-            max-width: 200px;
-            text-align: center;
-            min-width: 120px;
-        }
-
-        .quick-btn.operation {
-            border-color: #007bff;
-            color: #007bff;
-            background: #f8f9ff;
-        }
-
-        .quick-btn.type {
-            border-color: #28a745;
-            color: #28a745;
-            background: #f8fff9;
-        }
-
-        .quick-btn.neighborhood {
-            border-color: #6f42c1;
-            color: #6f42c1;
-            background: #f9f8ff;
-        }
-
-        .quick-btn.price {
-            border-color: #fd7e14;
-            color: #fd7e14;
-            background: #fff9f8;
-        }
-
-        .quick-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .quick-btn.operation:hover {
-            background: #007bff;
-            color: white;
-        }
-
-        .quick-btn.type:hover {
-            background: #28a745;
-            color: white;
-        }
-
-        .quick-btn.neighborhood:hover {
-            background: #6f42c1;
-            color: white;
-        }
-
-        .quick-btn.price:hover {
-            background: #fd7e14;
-            color: white;
-        }
-
         /* Input area */
         .input-area {
             padding: 20px 25px;
@@ -249,7 +266,6 @@
             border-radius: 25px;
             outline: none;
             transition: border-color 0.3s ease;
-            resize: none;
             font-family: inherit;
         }
 
@@ -316,49 +332,69 @@
             40% { transform: scale(1); opacity: 1; }
         }
 
+        /* Reset chat */
+        .reset-chat {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+
+        .reset-chat:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
         /* Responsive */
+        @media (max-width: 1024px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .filters-panel {
+                order: 2;
+            }
+            
+            .chat-area {
+                order: 1;
+                height: 70vh;
+            }
+        }
+
         @media (max-width: 768px) {
             body {
                 padding: 10px;
             }
-
+            
             .app-container {
-                height: 90vh;
+                gap: 15px;
+            }
+            
+            .filters-panel, .chat-area {
                 border-radius: 15px;
             }
-
-            .header {
-                padding: 20px;
+            
+            .chat-header {
+                padding: 15px 20px;
             }
-
-            .logo h1 {
-                font-size: 22px;
+            
+            .chat-box {
+                padding: 15px;
             }
-
-            .logo img {
-                height: 35px;
-            }
-
+            
             .message {
                 max-width: 90%;
             }
-
-            .quick-actions {
-                padding: 0 20px 10px;
-            }
-
-            .quick-btn {
-                padding: 8px 12px;
-                font-size: 12px;
-                min-width: 100px;
-            }
-
+            
             .input-area {
                 padding: 15px 20px;
-            }
-
-            .quick-section {
-                flex-wrap: wrap;
             }
         }
 
@@ -383,29 +419,102 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">
-                <img src="../llave.png" alt="Llave Dante Propiedades">
-                <h1>Dante Propiedades</h1>
+        <!-- Panel de Filtros -->
+        <div class="filters-panel">
+            <div class="filters-header">
+                <div class="logo-container">
+                    <img src="llave.png" alt="Dante Propiedades" onerror="this.style.display='none'">
+                    <h1>Dante Propiedades</h1>
+                </div>
+                <div class="filters-title">Filtros de Búsqueda</div>
             </div>
-            <p class="subtitle">Asistente Inmobiliario Inteligente</p>
-            <div class="status-indicator">
-                <div class="status-dot"></div>
-                <span id="statusText">Conectado</span>
+
+            <div class="filter-group">
+                <label class="filter-label">Tipo de Operación</label>
+                <select class="filter-select" id="operacion">
+                    <option value="">Todas las operaciones</option>
+                    <option value="alquiler">Alquiler</option>
+                    <option value="venta">Venta</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Barrio/Localidad</label>
+                <select class="filter-select" id="barrio">
+                    <option value="">Todos los barrios</option>
+                    <option value="palermo">Palermo</option>
+                    <option value="recoleta">Recoleta</option>
+                    <option value="belgrano">Belgrano</option>
+                    <option value="almagro">Almagro</option>
+                    <option value="caballito">Caballito</option>
+                    <option value="microcentro">Microcentro</option>
+                    <option value="balvanera">Balvanera</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Tipo de Propiedad</label>
+                <select class="filter-select" id="tipo">
+                    <option value="">Todos los tipos</option>
+                    <option value="departamento">Departamento</option>
+                    <option value="casa">Casa</option>
+                    <option value="ph">PH</option>
+                    <option value="casaquinta">Casaquinta</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Ambientes</label>
+                <select class="filter-select" id="ambientes">
+                    <option value="">Cualquier cantidad</option>
+                    <option value="1">1 Ambiente</option>
+                    <option value="2">2 Ambientes</option>
+                    <option value="3">3 Ambientes</option>
+                    <option value="4">4+ Ambientes</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Precio (USD)</label>
+                <div class="range-inputs">
+                    <input type="number" class="filter-input" id="precioMin" placeholder="Mínimo">
+                    <input type="number" class="filter-input" id="precioMax" placeholder="Máximo">
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Metros Cuadrados</label>
+                <div class="range-inputs">
+                    <input type="number" class="filter-input" id="metrosMin" placeholder="Mínimo m²">
+                    <input type="number" class="filter-input" id="metrosMax" placeholder="Máximo m²">
+                </div>
+            </div>
+
+            <div class="filter-buttons">
+                <button class="btn btn-primary" onclick="aplicarFiltros()">🔍 Aplicar Filtros</button>
+                <button class="btn btn-secondary" onclick="limpiarFiltros()">🔄 Limpiar Filtros</button>
             </div>
         </div>
 
-        <!-- Área de chat -->
-        <div class="chat-container">
+        <!-- Área de Chat -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <h2>Asistente Inmobiliario</h2>
+                <div class="chat-subtitle">Encontrá la propiedad perfecta para vos</div>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span id="statusText">Conectado</span>
+                </div>
+                <button class="reset-chat" onclick="resetearChat()">🔄 Nueva Consulta</button>
+            </div>
+
             <div class="chat-box" id="chatBox">
                 <!-- Mensaje de bienvenida -->
                 <div class="message msg-bot">
                     <b>ASISTENTE VIRTUAL</b>
                     ¡Hola! 👋 Soy tu asistente de Dante Propiedades. 
-                    Puedo ayudarte a encontrar propiedades en alquiler o venta, 
-                    filtrar por barrio, precio, ambientes y mucho más. 
-                    ¿Qué estás buscando hoy?
+                    Usá los filtros a la izquierda para buscar propiedades específicas 
+                    o contame directamente qué estás buscando.
                 </div>
             </div>
 
@@ -419,35 +528,11 @@
                 <span>Escribiendo...</span>
             </div>
 
-            <!-- Quick Actions Optimizados como Filtros -->
-            <div class="quick-actions">
-                <!-- OPERACIONES + BARRIOS (COMBINACIONES FRECUENTES) -->
-                <div class="quick-section">
-                    <button class="quick-btn operation" onclick="sendQuickMessage('alquiler Palermo')">🏢 Alquiler Palermo</button>
-                    <button class="quick-btn operation" onclick="sendQuickMessage('venta Recoleta')">💰 Venta Recoleta</button>
-                    <button class="quick-btn operation" onclick="sendQuickMessage('alquiler Belgrano')">🏛️ Alquiler Belgrano</button>
-                </div>
-                
-                <!-- TIPOS DE PROPIEDAD -->
-                <div class="quick-section">
-                    <button class="quick-btn type" onclick="sendQuickMessage('departamento alquiler')">🏠 Depto Alquiler</button>
-                    <button class="quick-btn type" onclick="sendQuickMessage('casa venta')">🏡 Casa Venta</button>
-                    <button class="quick-btn type" onclick="sendQuickMessage('ph alquiler')">🔑 PH Alquiler</button>
-                </div>
-                
-                <!-- FILTROS ESPECÍFICOS -->
-                <div class="quick-section">
-                    <button class="quick-btn neighborhood" onclick="sendQuickMessage('departamento 2 ambientes')">🚪 Depto 2 Amb</button>
-                    <button class="quick-btn price" onclick="sendQuickMessage('propiedades hasta $200000')">💵 Hasta $200K</button>
-                    <button class="quick-btn price" onclick="sendQuickMessage('propiedades $300000 a $500000')">💎 $300K-$500K</button>
-                </div>
-            </div>
-
             <!-- Input area -->
             <div class="input-area">
                 <div class="input-row">
                     <input type="text" id="userInput" 
-                           placeholder="Ej: 'Buscar departamento 2 ambientes en Palermo hasta $200.000'"
+                           placeholder="Ej: 'Busco departamento con balcón en Palermo...'"
                            autocomplete="off">
                     <button id="sendBtn">Enviar</button>
                 </div>
@@ -456,25 +541,27 @@
     </div>
 
     <script>
-        const API_URL = "https://chatgpt-eio1.onrender.com/chat"; // Tu URL de Render
+        const API_URL = "https://chatgpt-eio1.onrender.com/chat";
         const chatBox = document.getElementById('chatBox');
         const input = document.getElementById('userInput');
         const button = document.getElementById('sendBtn');
         const typingIndicator = document.getElementById('typingIndicator');
         const statusText = document.getElementById('statusText');
 
-        // Mensaje de bienvenida mejorado
+        let conversacionActual = [];
+
+        // Mensaje de bienvenida
         const welcomeMessage = `¡Hola! 👋 Soy tu asistente de Dante Propiedades. 
 
-Puedo ayudarte a:
-• Buscar propiedades en alquiler o venta
-• Filtrar por barrio (Palermo, Recoleta, Belgrano, etc.)
-• Encontrar por precio y cantidad de ambientes
-• Asesorarte en tu búsqueda inmobiliaria
+Te ayudo a encontrar la propiedad ideal. Podés:
 
-Usá los botones de abajo para búsquedas rápidas o contame exactamente qué necesitas.`;
+• Usar los filtros para búsquedas específicas
+• Contarme directamente qué necesitás
+• Combinar filtros con descripciones personalizadas
 
-        // Inicializar chat con mensaje de bienvenida
+¿En qué puedo ayudarte hoy?`;
+
+        // Inicializar chat
         setTimeout(() => {
             addMessage(welcomeMessage, 'bot');
         }, 500);
@@ -491,6 +578,13 @@ Usá los botones de abajo para búsquedas rápidas o contame exactamente qué ne
             
             chatBox.appendChild(messageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // Guardar en conversación actual
+            conversacionActual.push({
+                text: text,
+                from: from,
+                timestamp: new Date().toISOString()
+            });
         }
 
         function showTypingIndicator() {
@@ -500,6 +594,75 @@ Usá los botones de abajo para búsquedas rápidas o contame exactamente qué ne
 
         function hideTypingIndicator() {
             typingIndicator.style.display = 'none';
+        }
+
+        function resetearChat() {
+            if (confirm('¿Estás seguro de que querés empezar una nueva conversación? Se perderá el historial actual.')) {
+                chatBox.innerHTML = '';
+                conversacionActual = [];
+                
+                // Mensaje de reinicio
+                setTimeout(() => {
+                    addMessage('¡Perfecto! Empezemos de nuevo. ¿Qué propiedad estás buscando?', 'bot');
+                }, 300);
+            }
+        }
+
+        function construirConsultaConFiltros(mensajeAdicional = '') {
+            const operacion = document.getElementById('operacion').value;
+            const barrio = document.getElementById('barrio').value;
+            const tipo = document.getElementById('tipo').value;
+            const ambientes = document.getElementById('ambientes').value;
+            const precioMin = document.getElementById('precioMin').value;
+            const precioMax = document.getElementById('precioMax').value;
+            const metrosMin = document.getElementById('metrosMin').value;
+            const metrosMax = document.getElementById('metrosMax').value;
+
+            let consulta = 'Buscar propiedades';
+
+            if (operacion) consulta += ` en ${operacion}`;
+            if (barrio) consulta += ` en ${barrio}`;
+            if (tipo) consulta += ` ${tipo}`;
+            if (ambientes) consulta += ` de ${ambientes} ambientes`;
+            
+            if (precioMin || precioMax) {
+                consulta += ` precio`;
+                if (precioMin) consulta += ` desde $${precioMin}`;
+                if (precioMax) consulta += ` hasta $${precioMax}`;
+            }
+            
+            if (metrosMin || metrosMax) {
+                consulta += ` metros`;
+                if (metrosMin) consulta += ` desde ${metrosMin}m²`;
+                if (metrosMax) consulta += ` hasta ${metrosMax}m²`;
+            }
+
+            if (mensajeAdicional) {
+                consulta += `. ${mensajeAdicional}`;
+            }
+
+            return consulta;
+        }
+
+        function aplicarFiltros() {
+            const consulta = construirConsultaConFiltros();
+            if (consulta !== 'Buscar propiedades') {
+                input.value = consulta;
+                send();
+            } else {
+                alert('Seleccioná al menos un filtro para buscar.');
+            }
+        }
+
+        function limpiarFiltros() {
+            document.getElementById('operacion').value = '';
+            document.getElementById('barrio').value = '';
+            document.getElementById('tipo').value = '';
+            document.getElementById('ambientes').value = '';
+            document.getElementById('precioMin').value = '';
+            document.getElementById('precioMax').value = '';
+            document.getElementById('metrosMin').value = '';
+            document.getElementById('metrosMax').value = '';
         }
 
         async function send() {
@@ -532,7 +695,6 @@ Usá los botones de abajo para búsquedas rápidas o contame exactamente qué ne
                 const data = await response.json();
                 addMessage(data.response || 'No se pudo generar una respuesta.');
                 
-                // Actualizar estado
                 statusText.textContent = 'Conectado';
                 
             } catch (error) {
@@ -546,11 +708,6 @@ Usá los botones de abajo para búsquedas rápidas o contame exactamente qué ne
             }
         }
 
-        function sendQuickMessage(message) {
-            input.value = message;
-            send();
-        }
-
         // Event listeners
         button.addEventListener('click', send);
         input.addEventListener('keypress', (e) => {
@@ -562,7 +719,7 @@ Usá los botones de abajo para búsquedas rápidas o contame exactamente qué ne
         // Auto-focus en el input
         input.focus();
 
-        // Verificar estado del servidor periódicamente
+        // Verificar estado del servidor
         async function checkServerStatus() {
             try {
                 const response = await fetch(API_URL.replace('/chat', '/status'));
@@ -576,9 +733,8 @@ Usá los botones de abajo para búsquedas rápidas o contame exactamente qué ne
             }
         }
 
-        // Verificar estado cada 30 segundos
         setInterval(checkServerStatus, 30000);
-        checkServerStatus(); // Verificación inicial
+        checkServerStatus();
     </script>
 </body>
 </html>
