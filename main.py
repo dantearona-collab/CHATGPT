@@ -1,11 +1,12 @@
 """Backend para Dante Propiedades: procesamiento de consultas, filtros y generación de respuestas vía Gemini."""
-"""Backend para Dante Propiedades: procesamiento de consultas, filtros y generación de respuestas vía Gemini."""
 import os
 import re
 import json
 import sqlite3
 import requests
 import time
+import sys
+import io
 from functools import lru_cache
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
@@ -17,6 +18,13 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 from config import API_KEYS, ENDPOINT
 from gemini.client import call_gemini_with_rotation
+
+
+
+# Forzar encoding UTF-8 para toda la aplicación
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 
 # ✅ MODELOS DE DATOS PYDANTIC
 class ChatRequest(BaseModel):
@@ -121,6 +129,44 @@ def get_cached_results(filters: Dict[str, Any]) -> Optional[List[Dict]]:
     return None
 
 # ✅ FUNCIONES MEJORADAS
+def cargar_propiedades_a_db():
+    """Carga las propiedades del JSON a la base de datos SQLite"""
+    try:
+        propiedades = cargar_propiedades_json("properties.json")
+        if not propiedades:
+            print("❌ No hay propiedades para cargar")
+            return
+        
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        
+        # Limpiar tabla existente
+        cur.execute("DELETE FROM properties")
+        
+        # Insertar nuevas propiedades
+        for prop in propiedades:
+            cur.execute('''
+                INSERT INTO properties (id, title, neighborhood, price, rooms, sqm, description, operacion, tipo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                prop.get('id'),
+                prop.get('title'),
+                prop.get('neighborhood'),
+                prop.get('price'),
+                prop.get('rooms'),
+                prop.get('sqm'),
+                prop.get('description'),
+                prop.get('operacion'),
+                prop.get('tipo')
+            ))
+        
+        conn.commit()
+        conn.close()
+        print(f"✅ {len(propiedades)} propiedades cargadas en la base de datos")
+        
+    except Exception as e:
+        print(f"❌ Error cargando propiedades a DB: {e}")
+
 def initialize_databases():
     """Inicializa las bases de datos si no existen"""
     try:
@@ -142,12 +188,12 @@ def initialize_databases():
         conn.commit()
         conn.close()
         
-        # Base de datos de propiedades (si es necesario)
+        # Base de datos de propiedades
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute('''
             CREATE TABLE IF NOT EXISTS properties (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 title TEXT,
                 neighborhood TEXT,
                 price REAL,
@@ -162,13 +208,17 @@ def initialize_databases():
         conn.commit()
         conn.close()
         
+        # ✅ CARGAR PROPIEDADES DESDE JSON
+        cargar_propiedades_a_db()
+        
         print("✅ Bases de datos inicializadas correctamente")
     except Exception as e:
         print(f"❌ Error inicializando bases de datos: {e}")
 
 def cargar_propiedades_json(filename):
     try:
-        with open(filename, "r", encoding="utf-8") as f:
+        # SOLUCIÓN TEMPORAL: usar utf-8-sig que maneja automáticamente el BOM
+        with open(filename, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     except FileNotFoundError:
         print(f"⚠️ Archivo {filename} no encontrado")
@@ -487,7 +537,7 @@ async def chat(request: ChatRequest):
         print(f"📥 Mensaje recibido: {user_text}")
         print(f"📱 Canal: {channel}")
 
-        # Cargar datos de propiedades
+        # Cargar datos de propiedades desde JSON (para contexto)
         propiedades_json = cargar_propiedades_json("properties.json")
         barrios_disponibles = extraer_barrios(propiedades_json)
         tipos_disponibles = extraer_tipos(propiedades_json)
@@ -606,19 +656,5 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     print(f"🎯 Servidor en: http://127.0.0.1:{port}")
     print(f"📚 Documentación: http://127.0.0.1:{port}/docs")
-    
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
-    import uvicorn
-    
-    print("🔑 Probando claves API...")
-    for i, key in enumerate(API_KEYS):
-        try:
-            test = call_gemini_with_rotation("Respondé solo con OK")
-            print(f"🔑 Clave {i+1}: {test}")
-        except Exception as e:
-            print(f"❌ Error con clave {i+1}: {e}")
-    
-    port = int(os.environ.get("PORT", 8000))
-    print(f"🎯 Servidor en: http://127.0.0.1:{port}")
     
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
