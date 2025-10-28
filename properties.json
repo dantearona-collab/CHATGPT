@@ -1,92 +1,57 @@
-[
+﻿[
   {
-    "Operacion": "Alquiler",
-    "title": "Departamento luminoso - 3 ambientes",
+    "id": 1,
+    "title": "Departamento en Palermo",
     "neighborhood": "Palermo",
-    "price": 1200000,
+    "price": 250000,
+    "rooms": 2,
+    "sqm": 65,
+    "description": "Hermoso departamento en Palermo con amplio living",
+    "operacion": "alquiler",
+    "tipo": "departamento"
+  },
+  {
+    "id": 2,
+    "title": "Casa en Recoleta",
+    "neighborhood": "Recoleta",
+    "price": 500000,
     "rooms": 3,
-    "sqm": 75,
-    "description": "Amplio depto con balcón, a 2 cuadras de Av. Santa Fe."
+    "sqm": 120,
+    "description": "Casa moderna en Recoleta con jardín",
+    "operacion": "venta",
+    "tipo": "casa"
   },
   {
-    "Operacion": "Venta",
-    "title": "Monoambiente moderno",
-    "neighborhood": "Villa Crespo",
-    "price": 120000,
-    "rooms": 1,
-    "sqm": 36,
-    "description": "Monoambiente ideal para inversión, cercano a subte."
-  },
-  {
-    "Operacion": "Venta",
-    "title": "Casa con jardín",
+    "id": 3,
+    "title": "PH en Belgrano",
     "neighborhood": "Belgrano",
-    "price": 450000,
-    "rooms": 4,
-    "sqm": 180,
-    "description": "Casa familiar con jardín y cochera."
+    "price": 180000,
+    "rooms": 1,
+    "sqm": 45,
+    "description": "PH acogedor en Belgrano, ideal para una persona",
+    "operacion": "alquiler",
+    "tipo": "ph"
   },
   {
-    "Operacion": "alquiler",
-    "title": "Departamento céntrico 2 amb",
-    "neighborhood": "San Nicolás",
-    "price": 550000,
+    "id": 4,
+    "title": "Departamento en Microcentro",
+    "neighborhood": "Microcentro",
+    "price": 300000,
     "rooms": 2,
     "sqm": 55,
-    "description": "A metros de Plaza de Mayo, ideal renta."
+    "description": "Departamento céntrico cerca de todo",
+    "operacion": "venta",
+    "tipo": "departamento"
   },
   {
-    "Operacion": "Venta",
-    "title": "PH reciclado",
-    "neighborhood": "Almagro",
-    "price": 200000,
-    "rooms": 3,
-    "sqm": 95,
-    "description": "PH interno con patio y parrilla."
-  },
-  {
-    "Operacion": "Venta",
-    "title": "Terreno",
-    "neighborhood": "Boedo",
-    "price": 600000,
-    "rooms": 0,
-    "sqm": 306,
-    "description": "terreno 8,66x30 m2., superficie construible 2.000 m2"
-  },
-  {
-    "Operacion": "Venta",
-    "title": "Terreno",
-    "neighborhood": "Recoleta",
-    "price": 800000,
-    "rooms": 0,
-    "sqm": 200,
-    "description": "terreno 8,66x20 m2., superficie construible 1,500 m2"
-  },
-  {
-    "Operacion": "Venta",
-    "title": "Departamento céntrico 2 amb",
-    "neighborhood": "Balvanera",
-    "price": 55000,
-    "rooms": 1,
-    "sqm": 23,
-    "description": "A metros de Obelisco, ideal renta."
-  },
-  {
-    "Operacion": "Alquiler",
-    "title": "Departamento céntrico 3 amb",
-    "neighborhood": "Almagro",
-    "price": 850000,
-    "rooms": 1,
-    "sqm": 60,
-    "description": "A metros del Hospital Italiano Obelisco, ideal renta."
-  },
-  {
-    "Operacion": "Alquiler",
-    "title": "PH ",
-    "neighborhood": "Castelar",
-    "price": 750000,
-    "rooms": 3,
-    "sqm": 180,
-    "description": "100 m2. cubiertos y 80 m2. terraza"
+    "id": 5,
+    "title": "Casa en Caballito",
+    "neighborhood": "Caballito",
+    "price": 350000,
+    "rooms": 4,
+    "sqm": 140,
+    "description": "Casa familiar en Caballito con patio",
+    "operacion": "alquiler",
+    "tipo": "casa"
   }
 ]

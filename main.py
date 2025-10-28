@@ -5,8 +5,6 @@ import json
 import sqlite3
 import requests
 import time
-import sys
-import io
 from functools import lru_cache
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
@@ -19,17 +17,11 @@ from pydantic import BaseModel, Field
 from config import API_KEYS, ENDPOINT
 from gemini.client import call_gemini_with_rotation
 
-
-
-# Forzar encoding UTF-8 para toda la aplicación
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-
-
 # ✅ MODELOS DE DATOS PYDANTIC
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=1000, description="Mensaje del usuario")
     channel: str = Field(default="web", description="Canal de comunicación (web, whatsapp, etc.)")
+    filters: Optional[Dict[str, Any]] = Field(default=None, description="Filtros aplicados desde el frontend")
 
 class ChatResponse(BaseModel):
     response: str = Field(..., description="Respuesta del asistente")
@@ -167,9 +159,6 @@ def cargar_propiedades_a_db():
     except Exception as e:
         print(f"❌ Error cargando propiedades a DB: {e}")
 
-
-
-
 def initialize_databases():
     """Inicializa las bases de datos si no existen"""
     try:
@@ -226,11 +215,9 @@ def initialize_databases():
     except Exception as e:
         print(f"❌ Error inicializando bases de datos: {e}")
 
-
-
 def cargar_propiedades_json(filename):
     try:
-        # SOLUCIÓN TEMPORAL: usar utf-8-sig que maneja automáticamente el BOM
+        # Usar utf-8-sig que maneja automáticamente el BOM
         with open(filename, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     except FileNotFoundError:
@@ -313,6 +300,18 @@ def query_properties(filters=None):
                 where_clauses.append("rooms >= ?")
                 params.append(filters["min_rooms"])
                 
+            if filters.get("tipo"):
+                where_clauses.append("LOWER(tipo) LIKE LOWER(?)")
+                params.append(f"%{filters['tipo']}%")
+                
+            if filters.get("min_sqm") is not None:
+                where_clauses.append("sqm >= ?")
+                params.append(filters["min_sqm"])
+                
+            if filters.get("max_sqm") is not None:
+                where_clauses.append("sqm <= ?")
+                params.append(filters["max_sqm"])
+                
             if where_clauses:
                 q += " WHERE " + " AND ".join(where_clauses)
         
@@ -345,7 +344,7 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
             for r in results[:8]
         ]
         return (
-            style_hint + f"\n\nEl usuario está buscando propiedades para {filters.get('operacion', 'consultar')} en {filters.get('neighborhood', 'varios barrios')}. Aquí hay resultados relevantes:\n"
+            style_hint + f"\n\nEl usuario está buscando propiedades con los siguientes filtros: {filters}. Aquí hay resultados relevantes:\n"
             + "\n".join(bullets)
             + "\n\nRedactá una respuesta cálida y profesional que resuma los resultados, "
             "ofrezca ayuda personalizada y sugiera continuar la conversación por WhatsApp. "
@@ -354,7 +353,7 @@ def build_prompt(user_text, results=None, filters=None, channel="web", style_hin
         )
     elif results is not None:
         return (
-            f"{style_hint}\n\nEl usuario busca propiedades pero no hay resultados con esos filtros. "
+            f"{style_hint}\n\nEl usuario busca propiedades con estos filtros: {filters} pero no hay resultados. "
             "Redactá una respuesta amable que sugiera alternativas cercanas, pida más detalles "
             "y ofrezca continuar la conversación por WhatsApp. Cerrá con un agradecimiento."
             + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
@@ -385,7 +384,47 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
     """Detecta y extrae filtros del texto del usuario"""
     filters = {}
     
-    # Extraer barrio
+    # Mapeo de palabras clave a filtros
+    barrio_keywords = ['palermo', 'recoleta', 'belgrano', 'almagro', 'caballito', 'microcentro', 'balvanera']
+    operacion_keywords = {
+        'alquiler': 'alquiler',
+        'alquilar': 'alquiler', 
+        'renta': 'alquiler',
+        'venta': 'venta',
+        'comprar': 'venta',
+        'compra': 'venta',
+        'vender': 'venta'
+    }
+    tipo_keywords = {
+        'departamento': 'departamento',
+        'depto': 'departamento',
+        'casa': 'casa',
+        'ph': 'ph',
+        'casaquinta': 'casaquinta'
+    }
+    
+    # Detectar barrio por palabras clave exactas
+    for barrio in barrio_keywords:
+        if barrio in text_lower:
+            filters["neighborhood"] = barrio
+            print(f"📍 Barrio detectado (keyword): {filters['neighborhood']}")
+            break
+    
+    # Detectar operación
+    for keyword, operacion in operacion_keywords.items():
+        if keyword in text_lower:
+            filters["operacion"] = operacion
+            print(f"🏢 Operación detectada: {filters['operacion']}")
+            break
+    
+    # Detectar tipo de propiedad
+    for keyword, tipo in tipo_keywords.items():
+        if keyword in text_lower:
+            filters["tipo"] = tipo
+            print(f"🏠 Tipo detectado: {filters['tipo']}")
+            break
+    
+    # Extraer barrio con patrones regex (como respaldo)
     barrio_patterns = [
         r"en ([a-zA-Záéíóúñ ]+)",
         r"barrio ([a-zA-Záéíóúñ ]+)",
@@ -397,7 +436,7 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
         m_barrio = re.search(pattern, text_lower)
         if m_barrio:
             filters["neighborhood"] = m_barrio.group(1).strip()
-            print(f"📍 Barrio detectado: {filters['neighborhood']}")
+            print(f"📍 Barrio detectado (regex): {filters['neighborhood']}")
             break
     
     # Extraer precios
@@ -426,25 +465,6 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
     if m_rooms:
         filters["min_rooms"] = int(m_rooms.group(1))
         print(f"🚪 Ambientes detectados: {filters['min_rooms']}")
-    
-    # Extraer operación
-    op_patterns = [
-        r"(venta|comprar|compro|vendo)",
-        r"(alquiler|alquilar|alquilo)",
-        r"(temporario|temporal|temporada)"
-    ]
-    
-    for pattern in op_patterns:
-        m_operacion = re.search(pattern, text_lower)
-        if m_operacion:
-            op = m_operacion.group(1)
-            filters["operacion"] = (
-                "venta" if op in ["venta", "comprar", "compro", "vendo"] else
-                "alquiler" if op in ["alquiler", "alquilar", "alquilo"] else 
-                "temporario"
-            )
-            print(f"🏢 Operación detectada: {filters['operacion']}")
-            break
 
     return filters
 
@@ -476,7 +496,7 @@ def root():
         "status": "Backend activo",
         "endpoint": "/chat",
         "método": "POST",
-        "uso": "Enviar mensaje como JSON: { message: '...', channel: 'web' }",
+        "uso": "Enviar mensaje como JSON: { message: '...', channel: 'web', filters: {...} }",
         "documentación": "/docs"
     }
 
@@ -512,6 +532,9 @@ def get_properties(
     max_price: Optional[float] = None,
     min_rooms: Optional[int] = None,
     operacion: Optional[str] = None,
+    tipo: Optional[str] = None,
+    min_sqm: Optional[float] = None,
+    max_sqm: Optional[float] = None,
     limit: int = 20
 ):
     """Endpoint directo para buscar propiedades con filtros"""
@@ -526,6 +549,12 @@ def get_properties(
         filters["min_rooms"] = min_rooms
     if operacion:
         filters["operacion"] = operacion
+    if tipo:
+        filters["tipo"] = tipo
+    if min_sqm is not None:
+        filters["min_sqm"] = min_sqm
+    if max_sqm is not None:
+        filters["max_sqm"] = max_sqm
     
     results = query_properties(filters)
     return {
@@ -543,14 +572,16 @@ async def chat(request: ChatRequest):
     try:
         user_text = request.message.strip()
         channel = request.channel.strip()
+        filters_from_frontend = request.filters if request.filters else {}
 
         if not user_text:
             raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
 
         print(f"📥 Mensaje recibido: {user_text}")
         print(f"📱 Canal: {channel}")
+        print(f"🎯 Filtros del frontend: {filters_from_frontend}")
 
-        # Cargar datos de propiedades desde JSON (para contexto)
+        # Cargar datos de propiedades desde JSON
         propiedades_json = cargar_propiedades_json("properties.json")
         barrios_disponibles = extraer_barrios(propiedades_json)
         tipos_disponibles = extraer_tipos(propiedades_json)
@@ -566,17 +597,28 @@ async def chat(request: ChatRequest):
         )
 
         text_lower = user_text.lower()
-        filters, results = None, None
+        filters, results = {}, None
         search_performed = False
 
-        # 🔓 DETECCIÓN DE BÚSQUEDA MEJORADA
-        search_keywords = ["buscar", "mostrar", "propiedad", "departamento", "casa", "inmueble", "alquiler", "venta", "precio", "barrio", "necesito", "quiero"]
-        if any(k in text_lower for k in search_keywords):
-            print("🎯 Activando búsqueda con filtros...")
+        # 🔥 COMBINAR FILTROS: frontend + detección automática
+        
+        # 1. Agregar filtros del frontend si existen
+        if filters_from_frontend:
+            filters.update(filters_from_frontend)
+            print(f"🎯 Filtros aplicados desde frontend: {filters_from_frontend}")
+        
+        # 2. Detectar filtros adicionales del texto
+        detected_filters = detect_filters(text_lower)
+        if detected_filters:
+            filters.update(detected_filters)
+            print(f"🎯 Filtros detectados del texto: {detected_filters}")
+
+        # Si hay filtros, realizar búsqueda
+        if filters:
+            print("🎯 Activando búsqueda con filtros combinados...")
             search_performed = True
             metrics.increment_searches()
             
-            filters = detect_filters(text_lower)
             results = query_properties(filters)
             print(f"📊 Resultados encontrados: {len(results)}")
 

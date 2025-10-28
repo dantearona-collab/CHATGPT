@@ -160,6 +160,7 @@
             color: white;
             padding: 20px 30px;
             text-align: center;
+            position: relative;
         }
 
         .chat-header h2 {
@@ -608,7 +609,7 @@ Te ayudo a encontrar la propiedad ideal. Podés:
             }
         }
 
-        function construirConsultaConFiltros(mensajeAdicional = '') {
+        function obtenerFiltrosSeleccionados() {
             const operacion = document.getElementById('operacion').value;
             const barrio = document.getElementById('barrio').value;
             const tipo = document.getElementById('tipo').value;
@@ -618,25 +619,51 @@ Te ayudo a encontrar la propiedad ideal. Podés:
             const metrosMin = document.getElementById('metrosMin').value;
             const metrosMax = document.getElementById('metrosMax').value;
 
+            const filtros = {};
+            
+            if (operacion) filtros.operacion = operacion;
+            if (barrio) filtros.neighborhood = barrio;
+            if (tipo) filtros.tipo = tipo;
+            if (ambientes) filtros.min_rooms = parseInt(ambientes);
+            if (precioMin) filtros.min_price = parseFloat(precioMin);
+            if (precioMax) filtros.max_price = parseFloat(precioMax);
+            if (metrosMin) filtros.min_sqm = parseFloat(metrosMin);
+            if (metrosMax) filtros.max_sqm = parseFloat(metrosMax);
+
+            return filtros;
+        }
+
+        function formatearFiltrosParaMensaje(filtros) {
+            const partes = [];
+            
+            if (filtros.operacion) partes.push(`operación: ${filtros.operacion}`);
+            if (filtros.neighborhood) partes.push(`barrio: ${filtros.neighborhood}`);
+            if (filtros.tipo) partes.push(`tipo: ${filtros.tipo}`);
+            if (filtros.min_rooms) partes.push(`mínimo ${filtros.min_rooms} ambientes`);
+            if (filtros.min_price || filtros.max_price) {
+                let precio = 'precio';
+                if (filtros.min_price) precio += ` desde $${filtros.min_price}`;
+                if (filtros.max_price) precio += ` hasta $${filtros.max_price}`;
+                partes.push(precio);
+            }
+            if (filtros.min_sqm || filtros.max_sqm) {
+                let metros = 'metros';
+                if (filtros.min_sqm) metros += ` desde ${filtros.min_sqm}m²`;
+                if (filtros.max_sqm) metros += ` hasta ${filtros.max_sqm}m²`;
+                partes.push(metros);
+            }
+            
+            return partes.join(', ');
+        }
+
+        function construirConsultaConFiltros(mensajeAdicional = '') {
+            const filtros = obtenerFiltrosSeleccionados();
+            const descripcionFiltros = formatearFiltrosParaMensaje(filtros);
+            
             let consulta = 'Buscar propiedades';
-
-            if (operacion) consulta += ` en ${operacion}`;
-            if (barrio) consulta += ` en ${barrio}`;
-            if (tipo) consulta += ` ${tipo}`;
-            if (ambientes) consulta += ` de ${ambientes} ambientes`;
-            
-            if (precioMin || precioMax) {
-                consulta += ` precio`;
-                if (precioMin) consulta += ` desde $${precioMin}`;
-                if (precioMax) consulta += ` hasta $${precioMax}`;
+            if (descripcionFiltros) {
+                consulta += ` con ${descripcionFiltros}`;
             }
-            
-            if (metrosMin || metrosMax) {
-                consulta += ` metros`;
-                if (metrosMin) consulta += ` desde ${metrosMin}m²`;
-                if (metrosMax) consulta += ` hasta ${metrosMax}m²`;
-            }
-
             if (mensajeAdicional) {
                 consulta += `. ${mensajeAdicional}`;
             }
@@ -645,13 +672,19 @@ Te ayudo a encontrar la propiedad ideal. Podés:
         }
 
         function aplicarFiltros() {
-            const consulta = construirConsultaConFiltros();
-            if (consulta !== 'Buscar propiedades') {
-                input.value = consulta;
-                send();
-            } else {
+            const filtros = obtenerFiltrosSeleccionados();
+            
+            if (Object.keys(filtros).length === 0) {
                 alert('Seleccioná al menos un filtro para buscar.');
+                return;
             }
+
+            // Construir mensaje claro para el usuario
+            const descripcionFiltros = formatearFiltrosParaMensaje(filtros);
+            input.value = `Buscar propiedades con ${descripcionFiltros}`;
+            
+            // Enviar automáticamente
+            send();
         }
 
         function limpiarFiltros() {
@@ -666,8 +699,18 @@ Te ayudo a encontrar la propiedad ideal. Podés:
         }
 
         async function send() {
-            const msg = input.value.trim();
-            if (!msg) return;
+            let msg = input.value.trim();
+            const filtrosSeleccionados = obtenerFiltrosSeleccionados();
+            
+            // Si el mensaje está vacío pero hay filtros seleccionados, construir consulta automática
+            if (!msg && Object.keys(filtrosSeleccionados).length > 0) {
+                msg = construirConsultaConFiltros();
+            }
+            
+            if (!msg) {
+                alert('Por favor, escribí tu consulta o seleccioná algún filtro.');
+                return;
+            }
 
             addMessage(msg, 'user');
             input.value = '';
@@ -684,7 +727,8 @@ Te ayudo a encontrar la propiedad ideal. Podés:
                     },
                     body: JSON.stringify({
                         message: msg,
-                        channel: 'web'
+                        channel: 'web',
+                        filters: filtrosSeleccionados  // 🔥 ENVIAR FILTROS AL BACKEND
                     })
                 });
 
