@@ -138,8 +138,8 @@ def cargar_propiedades_a_db():
         # Insertar nuevas propiedades
         for prop in propiedades:
             cur.execute('''
-                INSERT INTO properties (id, title, neighborhood, price, rooms, sqm, description, operacion, tipo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO properties (id, title, neighborhood, price, rooms, sqm, description, operacion, tipo, direccion, antiguedad, estado, orientacion, piso, expensas, amenities, cochera, balcon, pileta, acepta_mascotas, aire_acondicionado, info_multimedia)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 prop.get('id'),
                 prop.get('title'),
@@ -149,7 +149,20 @@ def cargar_propiedades_a_db():
                 prop.get('sqm'),
                 prop.get('description'),
                 prop.get('operacion'),
-                prop.get('tipo')
+                prop.get('tipo'),
+                prop.get('direccion'),
+                prop.get('antiguedad'),
+                prop.get('estado'),
+                prop.get('orientacion'),
+                prop.get('piso'),
+                prop.get('expensas'),
+                prop.get('amenities'),
+                prop.get('cochera'),
+                prop.get('balcon'),
+                prop.get('pileta'),
+                prop.get('acepta_mascotas'),
+                prop.get('aire_acondicionado'),
+                prop.get('info_multimedia')
             ))
         
         conn.commit()
@@ -191,21 +204,33 @@ def initialize_databases():
         # Base de datos de propiedades (NUEVO ESQUEMA COMPLETO)
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS properties (
-                id INTEGER PRIMARY KEY,
-                title TEXT,
-                neighborhood TEXT,
-                price REAL,
-                rooms INTEGER,
-                sqm REAL,
-                description TEXT,
-                operacion TEXT,
-                tipo TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        conn.commit()
+                cur.execute('''
+                    CREATE TABLE IF NOT EXISTS properties (
+                        id INTEGER PRIMARY KEY,
+                        title TEXT,
+                        neighborhood TEXT,
+                        price REAL,
+                        rooms INTEGER,
+                        sqm REAL,
+                        description TEXT,
+                        operacion TEXT,
+                        tipo TEXT,
+                        direccion TEXT,
+                        antiguedad TEXT,
+                        estado TEXT,
+                        orientacion TEXT,
+                        piso TEXT,
+                        expensas TEXT,
+                        amenities TEXT,
+                        cochera TEXT,
+                        balcon TEXT,
+                        pileta TEXT,
+                        acepta_mascotas TEXT,
+                        aire_acondicionado TEXT,
+                        info_multimedia TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')        conn.commit()
         conn.close()
         
         # ✅ CARGAR PROPIEDADES DESDE JSON
@@ -255,6 +280,22 @@ def get_historial_canal(canal="web", limite=3):
         print(f"❌ Error obteniendo historial: {e}")
         return []
 
+def get_last_bot_response(channel="web"):
+    try:
+        conn = sqlite3.connect(LOG_PATH)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT bot_response FROM logs WHERE channel = ? ORDER BY id DESC LIMIT 1",
+            (channel,)
+        )
+        row = cur.fetchone()
+        conn.close()
+        return row["bot_response"] if row else None
+    except Exception as e:
+        print(f"❌ Error obteniendo la última respuesta del bot: {e}")
+        return None
+
 @lru_cache(maxsize=100)
 def query_properties_cached(filters_json: str):
     """Versión cacheada de query_properties"""
@@ -274,7 +315,7 @@ def query_properties(filters=None):
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         
-        q = "SELECT id, title, neighborhood, price, rooms, sqm, description, operacion, tipo FROM properties"
+        q = "SELECT id, title, neighborhood, price, rooms, sqm, description, operacion, tipo, direccion, antiguedad, estado, orientacion, piso, expensas, amenities, cochera, balcon, pileta, acepta_mascotas, aire_acondicionado, info_multimedia FROM properties"
         params = []
         
         if filters:
@@ -335,8 +376,19 @@ def query_properties(filters=None):
         print(f"❌ Error en query_properties: {e}")
         return []
 
-def build_prompt(user_text, results=None, filters=None, channel="web", style_hint=""):
+def build_prompt(user_text, results=None, filters=None, channel="web", style_hint="", property_details=None):
     whatsapp_tone = channel == "whatsapp"
+
+    if property_details:
+        details = "\n".join([f"- {key.replace('_', ' ').capitalize()}: {value}" for key, value in property_details.items()])
+        return (
+            style_hint + f"\n\nEl usuario está pidiendo más detalles sobre la propiedad '{property_details['title']}'. Aquí están todos los detalles de la propiedad:\n"
+            + details
+            + "\n\nRedactá una respuesta cálida y profesional que presente estos detalles de forma clara y atractiva. "
+            "Ofrecé ayuda personalizada y sugerí continuar la conversación por WhatsApp. "
+            "Cerrá con un agradecimiento y tono amable."
+            + ("\nUsá emojis si el canal es WhatsApp." if whatsapp_tone else "")
+        )
     
     if results is not None and results:
         bullets = [
@@ -599,6 +651,25 @@ async def chat(request: ChatRequest):
         text_lower = user_text.lower()
         filters, results = {}, None
         search_performed = False
+        property_details = None
+
+        # Check if user is asking for more details
+        if any(keyword in text_lower for keyword in ["caracteristicas", "detalles", "mas informacion", "más información"]):
+            # Try to find the property from the conversation history
+            if historial:
+                last_bot_response = get_last_bot_response(channel)
+                if last_bot_response:
+                    # Extract property title from last bot response
+                    match = re.search(r"\* \*\*(.*?):\*\*", last_bot_response)
+                    if match:
+                        property_title = match.group(1)
+                        # Get property details from the database
+                        conn = sqlite3.connect(DB_PATH)
+                        conn.row_factory = sqlite3.Row
+                        cur = conn.cursor()
+                        cur.execute("SELECT * FROM properties WHERE title = ?", (property_title,))
+                        property_details = dict(cur.fetchone())
+                        conn.close()
 
         # 🔥 COMBINAR FILTROS: frontend + detección automática
         
@@ -614,7 +685,7 @@ async def chat(request: ChatRequest):
             print(f"🎯 Filtros detectados del texto: {detected_filters}")
 
         # Si hay filtros, realizar búsqueda
-        if filters:
+        if filters and not property_details:
             print("🎯 Activando búsqueda con filtros combinados...")
             search_performed = True
             metrics.increment_searches()
@@ -628,7 +699,7 @@ async def chat(request: ChatRequest):
         else:
             style_hint = "Respondé de forma explicativa, profesional y cálida como si fuera una consulta web."
 
-        prompt = build_prompt(user_text, results, filters, channel, style_hint + "\n" + contexto_dinamico + "\n" + contexto_historial)
+        prompt = build_prompt(user_text, results, filters, channel, style_hint + "\n" + contexto_dinamico + "\n" + contexto_historial, property_details)
         print("🧠 Prompt enviado a Gemini")
         
         metrics.increment_gemini_calls()
@@ -693,6 +764,51 @@ def custom_openapi():
     
     app.openapi_schema = openapi_schema
     return app.openapi_schema
+
+def build_prompt(user_text, results=None, filters=None, channel="web", style_hint=""):
+    whatsapp_tone = channel == "whatsapp"
+    
+    if results is not None and results:
+        bullets = []
+        for r in results[:6]:  # Mostrar hasta 6 propiedades
+            bullet = f"{r['title']} — {r['neighborhood']} — ${r['price']:,.0f} — {r['rooms']} amb — {r['sqm']} m2"
+            
+            # 🆕 AGREGAR INFORMACIÓN MULTIMEDIA SI EXISTE
+            if r.get('info_multimedia'):
+                multimedia_info = []
+                for elem in r['info_multimedia'][:3]:  # Mostrar hasta 3 elementos
+                    if elem['tipo'] == 'fotos':
+                        multimedia_info.append('📸')
+                    elif elem['tipo'] == 'videos':
+                        multimedia_info.append('🎥')
+                    elif elem['tipo'] == 'audios':
+                        multimedia_info.append('🎧')
+                    elif elem['tipo'] == 'documentos':
+                        multimedia_info.append('📄')
+                
+                if multimedia_info:
+                    bullet += f" — {''.join(multimedia_info)}"
+            
+            bullets.append(bullet)
+        
+        return (
+            style_hint + f"\n\nEl usuario busca propiedades con estos filtros: {filters}. "
+            f"Aquí hay resultados relevantes:\n" + "\n".join(bullets) +
+            "\n\nRedactá una respuesta que:" +
+            "\n1. Resuma los resultados encontrados" +
+            "\n2. Mencione elementos multimedia disponibles (fotos, videos, etc.)" +
+            "\n3. Destaque características únicas de las propiedades" +
+            "\n4. Ofrezca continuar por WhatsApp para enviar multimedia específico" +
+            "\n5. Sea cálida y profesional" +
+            ("\nUsá emojis para elementos multimedia si el canal es WhatsApp." if whatsapp_tone else "")
+        )
+    # ... resto del código igual
+
+
+
+
+
+
 
 app.openapi = custom_openapi
 
