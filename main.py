@@ -172,6 +172,8 @@ def cargar_propiedades_a_db():
     except Exception as e:
         print(f"❌ Error cargando propiedades a DB: {e}")
 
+
+
 def initialize_databases():
     """Inicializa las bases de datos si no existen"""
     try:
@@ -204,35 +206,36 @@ def initialize_databases():
         # Base de datos de propiedades (NUEVO ESQUEMA COMPLETO)
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-                cur.execute('''
-                    CREATE TABLE IF NOT EXISTS properties (
-                        id INTEGER PRIMARY KEY,
-                        title TEXT,
-                        neighborhood TEXT,
-                        price REAL,
-                        rooms INTEGER,
-                        sqm REAL,
-                        description TEXT,
-                        operacion TEXT,
-                        tipo TEXT,
-                        direccion TEXT,
-                        antiguedad TEXT,
-                        estado TEXT,
-                        orientacion TEXT,
-                        piso TEXT,
-                        expensas TEXT,
-                        amenities TEXT,
-                        cochera TEXT,
-                        balcon TEXT,
-                        pileta TEXT,
-                        acepta_mascotas TEXT,
-                        aire_acondicionado TEXT,
-                        info_multimedia TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')        conn.commit()
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS properties (
+                id INTEGER PRIMARY KEY,
+                title TEXT,
+                neighborhood TEXT,
+                price REAL,
+                rooms INTEGER,
+                sqm REAL,
+                description TEXT,
+                operacion TEXT,
+                tipo TEXT,
+                direccion TEXT,
+                antiguedad TEXT,
+                estado TEXT,
+                orientacion TEXT,
+                piso TEXT,
+                expensas TEXT,
+                amenities TEXT,
+                cochera TEXT,
+                balcon TEXT,
+                pileta TEXT,
+                acepta_mascotas TEXT,
+                aire_acondicionado TEXT,
+                info_multimedia TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        conn.commit()
         conn.close()
-        
+
         # ✅ CARGAR PROPIEDADES DESDE JSON
         cargar_propiedades_a_db()
         
@@ -452,7 +455,9 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
         'depto': 'departamento',
         'casa': 'casa',
         'ph': 'ph',
-        'casaquinta': 'casaquinta'
+        'casaquinta': 'casaquinta',
+        'terreno': 'terreno',
+        'terrenos': 'terreno'
     }
     
     # Detectar barrio por palabras clave exactas
@@ -477,19 +482,22 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
             break
     
     # Extraer barrio con patrones regex (como respaldo)
-    barrio_patterns = [
-        r"en ([a-zA-Záéíóúñ ]+)",
-        r"barrio ([a-zA-Záéíóúñ ]+)",
-        r"zona ([a-zA-Záéíóúñ ]+)",
-        r"de ([a-zA-Záéíóúñ ]+)$"
-    ]
-    
-    for pattern in barrio_patterns:
-        m_barrio = re.search(pattern, text_lower)
-        if m_barrio:
-            filters["neighborhood"] = m_barrio.group(1).strip()
-            print(f"📍 Barrio detectado (regex): {filters['neighborhood']}")
-            break
+    if "neighborhood" not in filters:
+        barrio_patterns = [
+            r"en ([a-zA-Záéíóúñ ]+)",
+            r"barrio ([a-zA-Záéíóúñ ]+)",
+            r"zona ([a-zA-Záéíóúñ ]+)",
+            r"de ([a-zA-Záéíóúñ ]+)$"
+        ]
+        
+        for pattern in barrio_patterns:
+            m_barrio = re.search(pattern, text_lower)
+            if m_barrio:
+                potential_neighborhood = m_barrio.group(1).strip()
+                if potential_neighborhood not in operacion_keywords:
+                    filters["neighborhood"] = potential_neighborhood
+                    print(f"📍 Barrio detectado (regex): {filters['neighborhood']}")
+                    break
     
     # Extraer precios
     price_patterns = [
