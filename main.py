@@ -17,6 +17,46 @@ from pydantic import BaseModel, Field
 from config import API_KEYS, ENDPOINT
 from gemini.client import call_gemini_with_rotation
 
+def diagnosticar_problemas():
+    """Función de diagnóstico"""
+    print("🔍 INICIANDO DIAGNÓSTICO...")
+    
+    # 1. Verificar archivos
+    print("1. 📁 Verificando archivos...")
+    archivos = os.listdir('.')
+    print(f"   Archivos en directorio actual: {archivos}")
+    
+    # 2. Verificar properties.json
+    if os.path.exists("properties.json"):
+        try:
+            with open("properties.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+                print(f"   ✅ properties.json: {len(data)} propiedades encontradas")
+        except Exception as e:
+            print(f"   ❌ Error leyendo properties.json: {e}")
+    else:
+        print("   ❌ properties.json NO EXISTE")
+    
+    # 3. Verificar config
+    try:
+        from config import API_KEYS, ENDPOINT
+        print(f"   ✅ Config: {len(API_KEYS)} API keys cargadas")
+        print(f"   ✅ Endpoint: {ENDPOINT}")
+    except Exception as e:
+        print(f"   ❌ Error cargando config: {e}")
+    
+    # 4. Verificar gemini client
+    try:
+        from gemini.client import call_gemini_with_rotation
+        print("   ✅ Gemini client importado correctamente")
+    except Exception as e:
+        print(f"   ❌ Error importando gemini client: {e}")
+
+# Ejecutar diagnóstico inmediatamente
+diagnosticar_problemas()
+
+
+
 # ✅ MODELOS DE DATOS PYDANTIC
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=1000, description="Mensaje del usuario")
@@ -623,6 +663,38 @@ def get_properties(
         "properties": results[:limit]
     }
 
+@app.get("/debug")
+def debug_info():
+    """Endpoint de diagnóstico para producción"""
+    info = {
+        "directorio_actual": os.getcwd(),
+        "archivos": os.listdir('.'),
+        "existe_properties_json": os.path.exists("properties.json"),
+        "existe_config_py": os.path.exists("config.py"),
+        "variables_entorno": {
+            "GEMINI_API_KEYS": "SET" if os.environ.get("GEMINI_API_KEYS") else "MISSING",
+            "PORT": os.environ.get("PORT", "8000")
+        },
+        "base_datos": {
+            "existe_db": os.path.exists(DB_PATH),
+            "existe_logs": os.path.exists(LOG_PATH)
+        }
+    }
+    
+    # Verificar properties.json
+    if os.path.exists("properties.json"):
+        try:
+            with open("properties.json", "r", encoding="utf-8") as f:
+                props = json.load(f)
+                info["properties_json"] = f"{len(props)} propiedades"
+        except Exception as e:
+            info["properties_json"] = f"Error: {e}"
+    
+    return info
+
+
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """Endpoint principal para chat con el asistente inmobiliario"""
@@ -676,7 +748,9 @@ async def chat(request: ChatRequest):
                         conn.row_factory = sqlite3.Row
                         cur = conn.cursor()
                         cur.execute("SELECT * FROM properties WHERE title = ?", (property_title,))
-                        property_details = dict(cur.fetchone())
+                        row = cur.fetchone()
+                        if row:
+                            property_details = dict(row)
                         conn.close()
 
         # 🔥 COMBINAR FILTROS: frontend + detección automática
@@ -728,8 +802,16 @@ async def chat(request: ChatRequest):
         raise
     except Exception as e:
         metrics.increment_failures()
-        error_message = "Lo siento, hubo un problema procesando tu consulta. Por favor, intentá de nuevo."
-        print(f"❌ Error: {str(e)}")
+  # ✅ MOSTRAR EL ERROR REAL EN CONSOLA
+        import traceback
+        print(f"❌ ERROR DETALLADO en endpoint /chat:")
+        print(f"❌ Tipo: {type(e).__name__}")
+        print(f"❌ Mensaje: {str(e)}")
+        print(f"❌ Traceback completo:")
+        traceback.print_exc()
+        
+        # Respuesta temporal para debugging
+        error_message = f"🔧 ERROR ESPECÍFICO: {type(e).__name__}: {str(e)}"
         
         return ChatResponse(
             response=error_message,
@@ -773,67 +855,27 @@ def custom_openapi():
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
-def build_prompt(user_text, results=None, filters=None, channel="web", style_hint=""):
-    whatsapp_tone = channel == "whatsapp"
-    
-    if results is not None and results:
-        bullets = []
-        for r in results[:6]:  # Mostrar hasta 6 propiedades
-            bullet = f"{r['title']} — {r['neighborhood']} — ${r['price']:,.0f} — {r['rooms']} amb — {r['sqm']} m2"
-            
-            # 🆕 AGREGAR INFORMACIÓN MULTIMEDIA SI EXISTE
-            if r.get('info_multimedia'):
-                multimedia_info = []
-                for elem in r['info_multimedia'][:3]:  # Mostrar hasta 3 elementos
-                    if elem['tipo'] == 'fotos':
-                        multimedia_info.append('📸')
-                    elif elem['tipo'] == 'videos':
-                        multimedia_info.append('🎥')
-                    elif elem['tipo'] == 'audios':
-                        multimedia_info.append('🎧')
-                    elif elem['tipo'] == 'documentos':
-                        multimedia_info.append('📄')
-                
-                if multimedia_info:
-                    bullet += f" — {''.join(multimedia_info)}"
-            
-            bullets.append(bullet)
-        
-        return (
-            style_hint + f"\n\nEl usuario busca propiedades con estos filtros: {filters}. "
-            f"Aquí hay resultados relevantes:\n" + "\n".join(bullets) +
-            "\n\nRedactá una respuesta que:" +
-            "\n1. Resuma los resultados encontrados" +
-            "\n2. Mencione elementos multimedia disponibles (fotos, videos, etc.)" +
-            "\n3. Destaque características únicas de las propiedades" +
-            "\n4. Ofrezca continuar por WhatsApp para enviar multimedia específico" +
-            "\n5. Sea cálida y profesional" +
-            ("\nUsá emojis para elementos multimedia si el canal es WhatsApp." if whatsapp_tone else "")
-        )
-    # ... resto del código igual
-
-
-
-
-
-
-
 app.openapi = custom_openapi
 
 # ✅ INICIO
 if __name__ == "__main__":
     import uvicorn
     
-    print("🔑 Probando claves API...")
-    for i, key in enumerate(API_KEYS):
-        try:
-            test = call_gemini_with_rotation("Respondé solo con OK")
-            print(f"🔑 Clave {i+1}: {test}")
-        except Exception as e:
-            print(f"❌ Error con clave {i+1}: {e}")
+    print("🚀 INICIANDO EN MODO PRODUCCIÓN/RENDER")
+    print(f"🔍 Directorio: {os.getcwd()}")
+    print(f"🔍 Archivos: {os.listdir('.')}")
+    
+    # Diagnóstico completo
+    diagnosticar_problemas()
     
     port = int(os.environ.get("PORT", 8000))
-    print(f"🎯 Servidor en: http://127.0.0.1:{port}")
-    print(f"📚 Documentación: http://127.0.0.1:{port}/docs")
+    print(f"🎯 Servidor iniciando en puerto: {port}")
     
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    # En producción, reload=False
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=port, 
+        reload=False,  # ⚠️ IMPORTANTE: False en producción
+        access_log=True
+    )
