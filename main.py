@@ -14,33 +14,31 @@ from fastapi.openapi.utils import get_openapi
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
-from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
+# from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
 
 
-from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
 
-# 🔥🔥🔥 APLICAR PARCHE SOBRE CONFIG.PY 🔥🔥🔥
-print("🔧 Aplicando parche sobre config.py...")
+# 🔥 COMENTAR ESTA LÍNEA TEMPORALMENTE
+# from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
 
-# Filtrar claves expiradas
-claves_filtradas = [key for key in API_KEYS if "AIzaSyCNHu" not in key]
+# 🔥 REEMPLAZAR CON CONFIGURACIÓN DIRECTA
+import os
 
-if len(claves_filtradas) != len(API_KEYS):
-    print(f"🚨 ELIMINADAS {len(API_KEYS) - len(claves_filtradas)} CLAVES EXPIRADAS")
+# TUS 3 CLAVES NUEVAS
+API_KEYS = [
+    "AIzaSyB5rN9lVhki8mnw3tSHDBtBvnVfI_vY5JU",
+    "AIzaSyBa_XEELLVFZOtB7Qd7qmSSnNYFQL4-ww8", 
+    "AIzaSyCgO-mUkizhQNZNMhgacQMN7aUhAWaUKUk"
+]
 
-# Si no quedan claves válidas, usar las operativas
-if not claves_filtradas:
-    print("💥 TODAS LAS CLAVES DE CONFIG.PY SON EXPIRADAS - USANDO CLAVES NUEVAS")
-    API_KEYS = CLAVES_OPERATIVAS
-else:
-    print(f"✅ {len(claves_filtradas)} claves válidas de config.py")
-    API_KEYS = claves_filtradas
+ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent"
+WORKING_MODEL = "gemini-2.0-flash-001"
+MODEL = WORKING_MODEL
 
-print(f"🎯 CLAVES FINALES OPERATIVAS: {len(API_KEYS)}")
+print("🚀 CONFIGURACIÓN DIRECTA - CLAVES EXPIRADAS ELIMINADAS")
+print(f"🎯 Claves cargadas: {len(API_KEYS)}")
 for i, clave in enumerate(API_KEYS):
     print(f"   Clave {i+1}: {clave[:20]}...")
-
-print("=" * 60)
 
 
 
@@ -104,19 +102,67 @@ print("🔍 VARIABLE GEMINI_KEYS específica:")
 print(f"   GEMINI_KEYS: {os.getenv('GEMINI_KEYS', 'NO DEFINIDA')}")
 
 
+@app.get("/debug-nuclear")
+async def debug_nuclear():
+    """Diagnóstico extremo para ver QUÉ está pasando"""
+    import google.generativeai as genai
+    
+    resultados = {
+        "claves_configuradas": [],
+        "claves_operativas": [],
+        "claves_fallidas": [],
+        "variables_entorno": {}
+    }
+    
+    # Verificar claves en API_KEYS
+    for clave in API_KEYS:
+        try:
+            genai.configure(api_key=clave)
+            model = genai.GenerativeModel(MODEL)
+            response = model.generate_content("Test", request_options={"timeout": 5})
+            resultados["claves_operativas"].append(clave[:20] + "...")
+        except Exception as e:
+            resultados["claves_fallidas"].append({
+                "clave": clave[:20] + "...",
+                "error": type(e).__name__
+            })
+    
+    # Verificar variables de entorno
+    for key, value in os.environ.items():
+        if any(term in key.upper() for term in ['API', 'KEY']):
+            resultados["variables_entorno"][key] = "PRESENTE" if value else "VACÍA"
+    
+    return resultados
+
+
+
+
+
+
 
 def call_gemini_with_rotation(prompt: str) -> str:
     import google.generativeai as genai
     
-    print(f"🎯 INICIANDO ROTACIÓN DE CLAVES")
+    print(f"🎯 ROTACIÓN FORZADA - CLAVES NUEVAS")
     print(f"🔧 Modelo: {MODEL}")
-    print(f"🔑 Claves disponibles: {len(API_KEYS)}")
     
-    for i, key in enumerate(API_KEYS):
-        if not key.strip():
+    # 🔥 CLAVES FIJA - ELIMINAR CUALQUIER CLAVE EXPIRADA
+    CLAVES_GARANTIZADAS = [
+        "AIzaSyB5rN9lVhki8mnw3tSHDBtBvnVfI_vY5JU",
+        "AIzaSyBa_XEELLVFZOtB7Qd7qmSSnNYFQL4-ww8", 
+        "AIzaSyCgO-mUkizhQNZNMhgacQMN7aUhAWaUKUk"
+    ]
+    
+    # USAR SOLO CLAVES GARANTIZADAS, IGNORAR API_KEYS
+    claves_a_usar = CLAVES_GARANTIZADAS
+    
+    print(f"🔑 Claves GARANTIZADAS: {len(claves_a_usar)}")
+    
+    for i, key in enumerate(claves_a_usar):
+        if not key or not key.strip():
             continue
             
-        print(f"🔄 Probando clave {i+1}/{len(API_KEYS)}...")
+        print(f"🔄 Probando clave GARANTIZADA {i+1}/{len(claves_a_usar)}: {key[:20]}...")
         
         try:
             genai.configure(api_key=key.strip())
@@ -128,31 +174,34 @@ def call_gemini_with_rotation(prompt: str) -> str:
                     temperature=0.7,
                     top_p=0.8,
                     top_k=40,
-                )
+                ),
+                request_options={"timeout": 10}
             )
             
             if not response.parts:
                 raise Exception("Respuesta vacía de Gemini")
             
             answer = response.text.strip()
-            print(f"✅ Éxito con clave {i+1}")
+            print(f"✅ ÉXITO con clave garantizada {i+1}")
+            print(f"📝 Respuesta: {answer[:50]}...")
             
             return answer
 
         except Exception as e:
             error_type = type(e).__name__
             
-            # 🔥 MENSAJES MÁS LIMPIOS
             if "ResourceExhausted" in error_type or "429" in str(e):
                 print(f"❌ Clave {i+1} agotada")
             elif "PermissionDenied" in error_type or "401" in str(e):
                 print(f"❌ Clave {i+1} no autorizada") 
+            elif "InvalidArgument" in error_type or "400" in str(e):
+                print(f"❌ Clave {i+1} EXPIRADA/INVÁLIDA")
             else:
-                print(f"❌ Clave {i+1} error: {error_type}")
+                print(f"❌ Clave {i+1} error: {error_type} - {str(e)}")
             
             continue
     
-    return "❌ Todas las claves agotadas. Intente más tarde."
+    return "❌ Todas las claves están fallando. Por favor, contacte al soporte técnico."
 
 def diagnosticar_problemas():
     """Función de diagnóstico"""
