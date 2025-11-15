@@ -1134,16 +1134,36 @@ async def debug_nuclear():
 
 
 
-# 🔥🔥🔥 AÑADE EL NUEVO ENDPOINT AQUÍ 🔥🔥🔥
+
+    }
+
+
+# Añade esto EN CUALQUIER PARTE donde veas otros @app.get
+@app.get("/test-simple")
+async def test_simple():
+    return {"message": "✅ Este endpoint SÍ funciona"}
+
 @app.get("/debug-claves")
 async def debug_claves():
-    """Endpoint para verificar QUÉ claves está usando el backend"""
     return {
         "claves_cargadas": len(API_KEYS),
-        "claves": [key[:15] + "..." for key in API_KEYS],
-        "clave_expirada_presente": any("AIzaSyCNHu" in key for key in API_KEYS),
-        "estado": "✅ OK" if API_KEYS and not any("AIzaSyCNHu" in key for key in API_KEYS) else "❌ PROBLEMA"
+        "claves": [key[:10] + "..." for key in API_KEYS],
+        "estado": "TEST"
     }
+
+
+@app.get("/listar-rutas")
+async def listar_rutas():
+    routes = []
+    for route in app.routes:
+        if hasattr(route, 'methods'):
+            routes.append({
+                "path": route.path,
+                "methods": list(route.methods)
+            })
+    return {"rutas_disponibles": routes}
+
+
 
 
 
