@@ -72,7 +72,13 @@ print("=" * 60)
 
 
 
-
+@app.get("/debug-claves")
+async def debug_claves():
+    return {
+        "claves_cargadas": len(API_KEYS),
+        "claves": [key[:15] + "..." for key in API_KEYS],
+        "clave_expirada_presente": any("AIzaSyCNHu" in key for key in API_KEYS)
+    }
 
 
 
