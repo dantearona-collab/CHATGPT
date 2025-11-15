@@ -1143,13 +1143,6 @@ async def debug_nuclear():
 async def test_simple():
     return {"message": "✅ Este endpoint SÍ funciona"}
 
-@app.get("/debug-claves")
-async def debug_claves():
-    return {
-        "claves_cargadas": len(API_KEYS),
-        "claves": [key[:10] + "..." for key in API_KEYS],
-        "estado": "TEST"
-    }
 
 
 @app.get("/listar-rutas")
@@ -1166,7 +1159,20 @@ async def listar_rutas():
 
 
 
+# 🔥 AÑADE ESTO DONDE ESTÁN LOS OTROS @app.get
 
+@app.get("/test")
+def test_endpoint():
+    return {"message": "✅ TEST FUNCIONA", "timestamp": "ahora"}
+
+@app.get("/debug-claves")
+def debug_claves():
+    return {
+        "claves_cargadas": len(API_KEYS),
+        "claves_actuales": [key[:10] + "..." for key in API_KEYS],
+        "clave_expirada": any("AIzaSyCNHu" in key for key in API_KEYS),
+        "estado": "✅ OK" if not any("AIzaSyCNHu" in key for key in API_KEYS) else "❌ EXPIRADA"
+    }
 
 
 
