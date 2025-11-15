@@ -17,14 +17,7 @@ from pydantic import BaseModel, Field
 # from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
 
 
-
-# 🔥 COMENTAR ESTA LÍNEA TEMPORALMENTE
-# from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
-
-# 🔥 REEMPLAZAR CON CONFIGURACIÓN DIRECTA
-import os
-
-# TUS 3 CLAVES NUEVAS
+# TUS 3 CLAVES NUEVAS QUE FUNCIONAN
 API_KEYS = [
     "AIzaSyB5rN9lVhki8mnw3tSHDBtBvnVfI_vY5JU",
     "AIzaSyBa_XEELLVFZOtB7Qd7qmSSnNYFQL4-ww8", 
@@ -35,69 +28,16 @@ ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-f
 WORKING_MODEL = "gemini-2.0-flash-001"
 MODEL = WORKING_MODEL
 
-print("🚀 CONFIGURACIÓN DIRECTA - CLAVES EXPIRADAS ELIMINADAS")
-print(f"🎯 Claves cargadas: {len(API_KEYS)}")
+print("🚀🚀🚀 CONFIGURACIÓN DIRECTA ACTIVADA - CLAVES EXPIRADAS ELIMINADAS 🚀🚀🚀")
+print(f"🎯 Claves NUEVAS cargadas: {len(API_KEYS)}")
 for i, clave in enumerate(API_KEYS):
     print(f"   Clave {i+1}: {clave[:20]}...")
 
-
-
-
-
-# 🔥🔥🔥 PARCHE DE EMERGENCIA URGENTE - SOBREESCRIBIR CLAVES EXPIRADAS 🔥🔥🔥
-import os
-
-print("=" * 60)
-print("🚨 PARCHE DE EMERGENCIA ACTIVADO")
-print("=" * 60)
-
-# TUS 3 CLAVES NUEVAS QUE SABEMOS FUNCIONAN
-CLAVES_OPERATIVAS = [
-    "AIzaSyB5rN9lVhki8mnw3tSHDBtBvnVfI_vY5JU",
-    "AIzaSyBa_XEELLVFZOtB7Qd7qmSSnNYFQL4-ww8", 
-    "AIzaSyCgO-mUkizhQNZNMhgacQMN7aUhAWaUKUk"
-]
-
-# CLAVE EXPIRADA QUE DEBEMOS ELIMINAR
-CLAVE_EXPIRADA = "AIzaSyCNHuDW5ytZwQzwy3og5ZxYBjV0Tc6oyLU"
-
-print("🔍 Verificando estado actual de claves...")
-
-# SOBREESCRIBIR COMPLETAMENTE LAS CLAVES
-# Esto se ejecutará ANTES de que config.py cargue sus claves
-API_KEYS_ORIGINAL = None  # Placeholder
-
-print("✅ Parche preparado - Las claves expiradas serán eliminadas")
-print("=" * 60)
-
-
-
-# Después de las importaciones, agrega:
-print(f"🔍 API Keys cargadas: {API_KEYS}")
-print(f"🔍 Endpoint: {ENDPOINT}")
-
-# Al inicio, después de las importaciones
-print("🔍 TODAS LAS VARIABLES DE ENTORNO:")
-for key, value in os.environ.items():
-    if "GEMINI" in key or "API" in key:
-        print(f"   {key}: {value}")
-
-
-
-# 🔥 AGREGAR ESTO TEMPORALMENTE:
-print("🔍 TODAS LAS VARIABLES DE ENTORNO RELACIONADAS:")
+# Verificación de variables de entorno (OPCIONAL - solo para debug)
+print("🔍 VARIABLES DE ENTORNO RELACIONADAS:")
 for key, value in os.environ.items():
     if "GEMINI" in key.upper() or "API" in key.upper() or "KEY" in key.upper():
-        print(f"   {key}: {value[:20]}...")  # Mostrar solo primeros 20 chars
-
-print("🔍 VARIABLE GEMINI_API_KEYS específica:")
-print(f"   GEMINI_API_KEYS: {os.getenv('GEMINI_API_KEYS', 'NO DEFINIDA')}")
-
-print("🔍 VARIABLE GEMINI_KEYS específica:")
-print(f"   GEMINI_KEYS: {os.getenv('GEMINI_KEYS', 'NO DEFINIDA')}")
-
-
-
+        print(f"   {key}: {value[:20]}...")
 
 
 
