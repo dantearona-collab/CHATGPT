@@ -72,17 +72,6 @@ print("=" * 60)
 
 
 
-@app.get("/debug-claves")
-async def debug_claves():
-    return {
-        "claves_cargadas": len(API_KEYS),
-        "claves": [key[:15] + "..." for key in API_KEYS],
-        "clave_expirada_presente": any("AIzaSyCNHu" in key for key in API_KEYS)
-    }
-
-
-
-
 # Después de las importaciones, agrega:
 print(f"🔍 API Keys cargadas: {API_KEYS}")
 print(f"🔍 Endpoint: {ENDPOINT}")
@@ -106,39 +95,6 @@ print(f"   GEMINI_API_KEYS: {os.getenv('GEMINI_API_KEYS', 'NO DEFINIDA')}")
 
 print("🔍 VARIABLE GEMINI_KEYS específica:")
 print(f"   GEMINI_KEYS: {os.getenv('GEMINI_KEYS', 'NO DEFINIDA')}")
-
-
-@app.get("/debug-nuclear")
-async def debug_nuclear():
-    """Diagnóstico extremo para ver QUÉ está pasando"""
-    import google.generativeai as genai
-    
-    resultados = {
-        "claves_configuradas": [],
-        "claves_operativas": [],
-        "claves_fallidas": [],
-        "variables_entorno": {}
-    }
-    
-    # Verificar claves en API_KEYS
-    for clave in API_KEYS:
-        try:
-            genai.configure(api_key=clave)
-            model = genai.GenerativeModel(MODEL)
-            response = model.generate_content("Test", request_options={"timeout": 5})
-            resultados["claves_operativas"].append(clave[:20] + "...")
-        except Exception as e:
-            resultados["claves_fallidas"].append({
-                "clave": clave[:20] + "...",
-                "error": type(e).__name__
-            })
-    
-    # Verificar variables de entorno
-    for key, value in os.environ.items():
-        if any(term in key.upper() for term in ['API', 'KEY']):
-            resultados["variables_entorno"][key] = "PRESENTE" if value else "VACÍA"
-    
-    return resultados
 
 
 
@@ -1141,6 +1097,64 @@ def get_logs(limit: int = 10, channel: Optional[str] = None):
         return [dict(r) for r in rows]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo logs: {str(e)}")
+
+
+
+@app.get("/debug-nuclear")
+async def debug_nuclear():
+    """Diagnóstico extremo para ver QUÉ está pasando"""
+    import google.generativeai as genai
+    
+    resultados = {
+        "claves_configuradas": [],
+        "claves_operativas": [],
+        "claves_fallidas": [],
+        "variables_entorno": {}
+    }
+    
+    # Verificar claves en API_KEYS
+    for clave in API_KEYS:
+        try:
+            genai.configure(api_key=clave)
+            model = genai.GenerativeModel(MODEL)
+            response = model.generate_content("Test", request_options={"timeout": 5})
+            resultados["claves_operativas"].append(clave[:20] + "...")
+        except Exception as e:
+            resultados["claves_fallidas"].append({
+                "clave": clave[:20] + "...",
+                "error": type(e).__name__
+            })
+    
+    # Verificar variables de entorno
+    for key, value in os.environ.items():
+        if any(term in key.upper() for term in ['API', 'KEY']):
+            resultados["variables_entorno"][key] = "PRESENTE" if value else "VACÍA"
+    
+    return resultados
+
+
+
+# 🔥🔥🔥 AÑADE EL NUEVO ENDPOINT AQUÍ 🔥🔥🔥
+@app.get("/debug-claves")
+async def debug_claves():
+    """Endpoint para verificar QUÉ claves está usando el backend"""
+    return {
+        "claves_cargadas": len(API_KEYS),
+        "claves": [key[:15] + "..." for key in API_KEYS],
+        "clave_expirada_presente": any("AIzaSyCNHu" in key for key in API_KEYS),
+        "estado": "✅ OK" if API_KEYS and not any("AIzaSyCNHu" in key for key in API_KEYS) else "❌ PROBLEMA"
+    }
+
+
+
+
+
+
+
+
+
+
+
 
 @app.get("/properties")
 def get_properties(
