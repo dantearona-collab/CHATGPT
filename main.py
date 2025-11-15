@@ -43,41 +43,23 @@ for key, value in os.environ.items():
 
 
 def call_gemini_with_rotation(prompt: str) -> str:
+    """Función mejorada para llamar a Gemini con rotación de claves"""
     try:
         import google.generativeai as genai
         
-        print(f"🎯 INICIANDO ROTACIÓN DE CLAVES MEJORADA")
-        print(f"🔧 Modelo: {MODEL}")
+        print(f"🎯 INICIANDO ROTACIÓN DE CLAVES")
         print(f"📝 Prompt length: {len(prompt)} caracteres")
         
-        # 🔥 CLAVES GARANTIZADAS - IGNORAR API_KEYS COMPLETAMENTE
-        CLAVES_GARANTIZADAS = [
-            "AIzaSyB5rN9lVhki8mnw3tSHDBtBvnVfI_vY5JU",
-            "AIzaSyBa_XEELLVFZOtB7Qd7qmSSnNYFQL4-ww8", 
-            "AIzaSyCgO-mUkizhQNZNMhgacQMN7aUhAWaUKUk"
-        ]
-        
-        # USAR SOLO CLAVES GARANTIZADAS
-        claves_a_usar = CLAVES_GARANTIZADAS
-        
-        print(f"🔑 Claves garantizadas a probar: {len(claves_a_usar)}")
-        
-        for i, key in enumerate(claves_a_usar):
+        for i, key in enumerate(API_KEYS):
             if not key or not key.strip():
                 continue
                 
-            print(f"🔄 Probando clave {i+1}/{len(claves_a_usar)}: {key[:20]}...")
+            print(f"🔄 Probando clave {i+1}/{len(API_KEYS)}: {key[:20]}...")
             
             try:
-                # CONFIGURAR API KEY
                 genai.configure(api_key=key.strip())
-                
-                # CREAR MODELO
                 model = genai.GenerativeModel(MODEL)
                 
-                print(f"🔧 Modelo creado, generando contenido...")
-                
-                # GENERAR CONTENIDO
                 response = model.generate_content(
                     prompt,
                     generation_config=genai.types.GenerationConfig(
@@ -85,60 +67,25 @@ def call_gemini_with_rotation(prompt: str) -> str:
                         top_p=0.8,
                         top_k=40,
                     ),
-                    request_options={"timeout": 15}  # Aumentado timeout
+                    request_options={"timeout": 15}
                 )
                 
-                print(f"✅ Respuesta recibida de Gemini")
-                
                 if not response.parts:
-                    print("⚠️  Respuesta vacía de Gemini")
                     raise Exception("Respuesta vacía de Gemini")
                 
                 answer = response.text.strip()
                 print(f"✅ ÉXITO con clave {i+1}")
-                print(f"📝 Respuesta preview: {answer[:80]}...")
-                
                 return answer
 
             except Exception as e:
                 error_type = type(e).__name__
-                error_msg = str(e)
-                
                 print(f"❌ Error con clave {i+1}: {error_type}")
-                print(f"🔍 Detalle error: {error_msg[:100]}...")
-                
-                if "ResourceExhausted" in error_type or "429" in error_msg:
-                    print(f"   → Clave {i+1} agotada (límites)")
-                elif "PermissionDenied" in error_type or "401" in error_msg:
-                    print(f"   → Clave {i+1} no autorizada")
-                elif "InvalidArgument" in error_type or "400" in error_msg:
-                    print(f"   → Clave {i+1} EXPIRADA/INVÁLIDA")
-                elif "DeadlineExceeded" in error_type:
-                    print(f"   → Clave {i+1} timeout")
-                else:
-                    print(f"   → Clave {i+1} error desconocido")
-                
                 continue
         
-        # Si llegamos aquí, todas las claves fallaron
-        error_final = "❌ Todas las claves fallaron. "
-        if any("InvalidArgument" in str(e) for e in [locals().get('e', '')]):
-            error_final += "Posibles claves expiradas."
-        elif any("ResourceExhausted" in str(e) for e in [locals().get('e', '')]):
-            error_final += "Límites excedidos en todas las claves."
-        else:
-            error_final += "Error de conexión o configuración."
-            
-        return error_final
+        return "❌ Todas las claves fallaron. Por favor, intentá nuevamente."
         
-    except ImportError as e:
-        error_msg = f"❌ Error importando google.generativeai: {e}"
-        print(error_msg)
-        return error_msg
     except Exception as e:
-        error_msg = f"❌ Error general en call_gemini: {type(e).__name__}: {e}"
-        print(error_msg)
-        return error_msg
+        return f"❌ Error general: {type(e).__name__}: {str(e)}"
 
 def diagnosticar_problemas():
     """Función de diagnóstico"""
@@ -1700,21 +1647,13 @@ app.openapi = custom_openapi
 if __name__ == "__main__":
     import uvicorn
     
-    print("🚀 INICIANDO EN MODO PRODUCCIÓN/RENDER")
-    print(f"🔍 Directorio: {os.getcwd()}")
-    print(f"🔍 Archivos: {os.listdir('.')}")
-    
-    # Diagnóstico completo
-    diagnosticar_problemas()
-    
+    print("🚀 INICIANDO SERVIDOR DANTE PROPIEDADES")
     port = int(os.environ.get("PORT", 8000))
-    print(f"🎯 Servidor iniciando en puerto: {port}")
     
-    # En producción, reload=False
     uvicorn.run(
         "main:app", 
         host="0.0.0.0", 
         port=port, 
-        reload=False,  # ⚠️ IMPORTANTE: False en producción
+        reload=False,
         access_log=True
     )
