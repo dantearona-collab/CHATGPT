@@ -1019,19 +1019,28 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
 # ✅ ENDPOINTS MEJORADOS
 @app.get("/status")
 def status():
-    """Endpoint de estado del servicio"""
-    # 🔥 TEMPORAL: No probar Gemini para evitar que falle el endpoint
-    gemini_status = "CONFIGURADO"  # En lugar de probar realmente
+    """Endpoint de estado del servicio - VERSIÓN SEGURA"""
+    # 🔥 NO probar Gemini para evitar que el endpoint falle
+    gemini_status = "CONFIGURADO"
+    
+    # Verificar claves sin usar Gemini
+    claves_info = {
+        "total_claves": len(API_KEYS),
+        "claves_muestra": [key[:8] + "..." for key in API_KEYS],
+        "clave_expirada_detectada": any("AIzaSyCNHu" in key for key in API_KEYS)
+    }
     
     return {
         "status": "activo",
         "gemini_api": gemini_status,
-        "claves_cargadas": len(API_KEYS),
-        "claves_muestra": [key[:8] + "..." for key in API_KEYS],
+        "claves_info": claves_info,
         "uptime_seconds": metrics.get_uptime(),
-        "total_requests": metrics.requests_count
+        "total_requests": metrics.requests_count,
+        "successful_requests": metrics.successful_requests,
+        "failed_requests": metrics.failed_requests,
+        "gemini_calls": metrics.gemini_calls,
+        "search_queries": metrics.search_queries
     }
-
 
 @app.get("/")
 def root():
@@ -1103,17 +1112,30 @@ async def debug_nuclear():
     return resultados
 
 
-
-
+@app.get("/debug-config")
+async def debug_config():
+    """Endpoint seguro que NO usa Gemini"""
+    return {
+        "api_keys_cargadas": len(API_KEYS),
+        "claves": [key[:10] + "..." for key in API_KEYS],
+        "clave_expirada_detectada": any("AIzaSyCNHu" in key for key in API_KEYS),
+        "endpoint": ENDPOINT,
+        "modelo": MODEL,
+        "estado": "✅ CONFIGURADO" if API_KEYS and not any("AIzaSyCNHu" in key for key in API_KEYS) else "❌ PROBLEMA"
     }
+
+    
 
 
 # Añade esto EN CUALQUIER PARTE donde veas otros @app.get
 @app.get("/test-simple")
 async def test_simple():
-    return {"message": "✅ Este endpoint SÍ funciona"}
-
-
+    """Endpoint simple de prueba"""
+    return {
+        "message": "✅ Backend funcionando",
+        "timestamp": datetime.now().isoformat(),
+        "claves_cargadas": len(API_KEYS)
+    }
 
 @app.get("/listar-rutas")
 async def listar_rutas():
