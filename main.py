@@ -985,12 +985,15 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
 @app.get("/status")
 def status():
     """Endpoint de estado del servicio"""
-    test_prompt = "Respondé solo con OK"
-    try:
-        response = call_gemini_with_rotation(test_prompt)
-        gemini_status = "OK" if "OK" in response else "ERROR"
-    except Exception as e:
-        gemini_status = f"ERROR: {str(e)}"
+    # 🔥 COMENTAR la prueba de Gemini temporalmente
+    # test_prompt = "Respondé solo con OK"
+    # try:
+    #     response = call_gemini_with_rotation(test_prompt)
+    #     gemini_status = "OK" if "OK" in response else "ERROR"
+    # except Exception as e:
+    #     gemini_status = f"ERROR: {str(e)}"
+    
+    gemini_status = "EN_CONFIGURACION"  # 🔥 Temporal
     
     return {
         "status": "activo",
@@ -1000,8 +1003,15 @@ def status():
         "successful_requests": metrics.successful_requests,
         "failed_requests": metrics.failed_requests,
         "gemini_calls": metrics.gemini_calls,
-        "search_queries": metrics.search_queries
+        "search_queries": metrics.search_queries,
+        # 🔥 AÑADIR INFORMACIÓN DE CLAVES
+        "claves_cargadas": len(API_KEYS),
+        "claves_muestra": [key[:8] + "..." for key in API_KEYS] if API_KEYS else []
     }
+
+
+
+
 
 @app.get("/")
 def root():
@@ -1121,7 +1131,16 @@ async def test_simple():
     return {"message": "✅ Este endpoint SÍ existe"}
 
 
-
+@app.get("/test-config")
+async def test_config():
+    """Endpoint simple que NO usa Gemini"""
+    return {
+        "api_keys_cargadas": len(API_KEYS),
+        "claves": [key[:10] + "..." for key in API_KEYS],
+        "clave_expirada_detectada": any("AIzaSyCNHu" in key for key in API_KEYS),
+        "endpoint": ENDPOINT,
+        "modelo": MODEL
+    }
 
 
 
