@@ -1165,15 +1165,20 @@ async def listar_rutas():
 def test_endpoint():
     return {"message": "✅ TEST FUNCIONA", "timestamp": "ahora"}
 
+# 🔥 🔥 🔥 AÑADE ESTO AL FINAL DEL ARCHIVO 🔥 🔥 🔥
+
 @app.get("/debug-claves")
-def debug_claves():
+async def debug_claves():
     return {
         "claves_cargadas": len(API_KEYS),
-        "claves_actuales": [key[:10] + "..." for key in API_KEYS],
-        "clave_expirada": any("AIzaSyCNHu" in key for key in API_KEYS),
-        "estado": "✅ OK" if not any("AIzaSyCNHu" in key for key in API_KEYS) else "❌ EXPIRADA"
+        "claves_actuales": [key[:15] + "..." for key in API_KEYS],
+        "clave_expirada_presente": any("AIzaSyCNHu" in key for key in API_KEYS),
+        "estado": "❌ PROBLEMA" if any("AIzaSyCNHu" in key for key in API_KEYS) else "✅ OK"
     }
 
+@app.get("/test-simple")
+async def test_simple():
+    return {"message": "✅ Este endpoint SÍ existe"}
 
 
 
