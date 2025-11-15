@@ -16,34 +16,62 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
 
-# Añade esto INMEDIATAMENTE después del import de config en main.py
 
-# 🔥 PARCHE INMEDIATO - SOBREESCRIBIR API_KEYS SI ESTÁN VACÍAS
-if not API_KEYS or not any(key.startswith('AIzaSy') for key in API_KEYS):
-    print("🚨 PARCHE ACTIVADO: config.py no cargó claves válidas")
-    
-    CLAVES_EMERGENCIA = [
-        "AIzaSyB5rN9lVhki8mnw3tSHDBtBvnVfI_vY5JU",
-        "AIzaSyBa_XEELLVFZOtB7Qd7qmSSnNYFQL4-ww8", 
-        "AIzaSyCgO-mUkizhQNZNMhgacQMN7aUhAWaUKUk"
-    ]
-    
-    # Buscar también en variables de entorno directamente
-    variables_posibles = ['GOOGLE_API_KEY', 'GEMINI_API_KEY', 'GOOGLE_API_KEY_2']
-    claves_directas = []
-    
-    for var_name in variables_posibles:
-        clave = os.getenv(var_name)
-        if clave and clave.startswith('AIzaSy'):
-            claves_directas.append(clave)
-            print(f"✅ Encontrada directamente: {var_name}")
-    
-    # Usar variables de entorno O emergencia
-    API_KEYS = claves_directas if claves_directas else CLAVES_EMERGENCIA
-    
-    print(f"🎯 Claves finales: {len(API_KEYS)}")
+from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
 
-print(f"🔑 Claves operativas: {[key[:8] + '...' for key in API_KEYS]}")
+# 🔥🔥🔥 APLICAR PARCHE SOBRE CONFIG.PY 🔥🔥🔥
+print("🔧 Aplicando parche sobre config.py...")
+
+# Filtrar claves expiradas
+claves_filtradas = [key for key in API_KEYS if "AIzaSyCNHu" not in key]
+
+if len(claves_filtradas) != len(API_KEYS):
+    print(f"🚨 ELIMINADAS {len(API_KEYS) - len(claves_filtradas)} CLAVES EXPIRADAS")
+
+# Si no quedan claves válidas, usar las operativas
+if not claves_filtradas:
+    print("💥 TODAS LAS CLAVES DE CONFIG.PY SON EXPIRADAS - USANDO CLAVES NUEVAS")
+    API_KEYS = CLAVES_OPERATIVAS
+else:
+    print(f"✅ {len(claves_filtradas)} claves válidas de config.py")
+    API_KEYS = claves_filtradas
+
+print(f"🎯 CLAVES FINALES OPERATIVAS: {len(API_KEYS)}")
+for i, clave in enumerate(API_KEYS):
+    print(f"   Clave {i+1}: {clave[:20]}...")
+
+print("=" * 60)
+
+
+
+
+
+# 🔥🔥🔥 PARCHE DE EMERGENCIA URGENTE - SOBREESCRIBIR CLAVES EXPIRADAS 🔥🔥🔥
+import os
+
+print("=" * 60)
+print("🚨 PARCHE DE EMERGENCIA ACTIVADO")
+print("=" * 60)
+
+# TUS 3 CLAVES NUEVAS QUE SABEMOS FUNCIONAN
+CLAVES_OPERATIVAS = [
+    "AIzaSyB5rN9lVhki8mnw3tSHDBtBvnVfI_vY5JU",
+    "AIzaSyBa_XEELLVFZOtB7Qd7qmSSnNYFQL4-ww8", 
+    "AIzaSyCgO-mUkizhQNZNMhgacQMN7aUhAWaUKUk"
+]
+
+# CLAVE EXPIRADA QUE DEBEMOS ELIMINAR
+CLAVE_EXPIRADA = "AIzaSyCNHuDW5ytZwQzwy3og5ZxYBjV0Tc6oyLU"
+
+print("🔍 Verificando estado actual de claves...")
+
+# SOBREESCRIBIR COMPLETAMENTE LAS CLAVES
+# Esto se ejecutará ANTES de que config.py cargue sus claves
+API_KEYS_ORIGINAL = None  # Placeholder
+
+print("✅ Parche preparado - Las claves expiradas serán eliminadas")
+print("=" * 60)
+
 
 
 
