@@ -14,116 +14,83 @@ from fastapi.openapi.utils import get_openapi
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
-# from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
+from config import API_KEYS, ENDPOINT, WORKING_MODEL as MODEL
 
 
-# TUS 3 CLAVES NUEVAS QUE FUNCIONAN
-API_KEYS = [
-    "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig", "AIzaSyAoC9RD4HPE7l5wY8RcnMHS7F1BeXj7ea8", 
-    "AIzaSyDnnMnR6TMAAW5Cdh7izJ9V_8N_61UJh_w"
-]
+# Después de las importaciones, agrega:
+print(f"🔍 API Keys cargadas: {API_KEYS}")
+print(f"🔍 Endpoint: {ENDPOINT}")
 
-ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent"
-WORKING_MODEL = "gemini-2.0-flash-001"
-MODEL = WORKING_MODEL
+# Al inicio, después de las importaciones
+print("🔍 TODAS LAS VARIABLES DE ENTORNO:")
+for key, value in os.environ.items():
+    if "GEMINI" in key or "API" in key:
+        print(f"   {key}: {value}")
 
-print("🚀🚀🚀 CONFIGURACIÓN DIRECTA ACTIVADA - CLAVES EXPIRADAS ELIMINADAS 🚀🚀🚀")
-print(f"🎯 Claves NUEVAS cargadas: {len(API_KEYS)}")
-for i, clave in enumerate(API_KEYS):
-    print(f"   Clave {i+1}: {clave[:20]}...")
 
-# Verificación de variables de entorno (OPCIONAL - solo para debug)
-print("🔍 VARIABLES DE ENTORNO RELACIONADAS:")
+
+# 🔥 AGREGAR ESTO TEMPORALMENTE:
+print("🔍 TODAS LAS VARIABLES DE ENTORNO RELACIONADAS:")
 for key, value in os.environ.items():
     if "GEMINI" in key.upper() or "API" in key.upper() or "KEY" in key.upper():
-        print(f"   {key}: {value[:20]}...")
+        print(f"   {key}: {value[:20]}...")  # Mostrar solo primeros 20 chars
 
+print("🔍 VARIABLE GEMINI_API_KEYS específica:")
+print(f"   GEMINI_API_KEYS: {os.getenv('GEMINI_API_KEYS', 'NO DEFINIDA')}")
+
+print("🔍 VARIABLE GEMINI_KEYS específica:")
+print(f"   GEMINI_KEYS: {os.getenv('GEMINI_KEYS', 'NO DEFINIDA')}")
 
 
 
 def call_gemini_with_rotation(prompt: str) -> str:
-    """Función mejorada para llamar a Gemini con rotación de claves"""
-    try:
-        import google.generativeai as genai
-        
-        print(f"🎯 INICIANDO ROTACIÓN DE CLAVES")
-        print(f"📝 Prompt length: {len(prompt)} caracteres")
-        
-        for i, key in enumerate(API_KEYS):
-            if not key or not key.strip():
-                continue
-                
-            print(f"🔄 Probando clave {i+1}/{len(API_KEYS)}: {key[:20]}...")
+    import google.generativeai as genai
+    
+    print(f"🎯 INICIANDO ROTACIÓN DE CLAVES")
+    print(f"🔧 Modelo: {MODEL}")
+    print(f"🔑 Claves disponibles: {len(API_KEYS)}")
+    
+    for i, key in enumerate(API_KEYS):
+        if not key.strip():
+            continue
             
-            try:
-                genai.configure(api_key=key.strip())
-                model = genai.GenerativeModel(MODEL)
-                
-                response = model.generate_content(
-                    prompt,
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.7,
-                        top_p=0.8,
-                        top_k=40,
-                    ),
-                    request_options={"timeout": 15}
+        print(f"🔄 Probando clave {i+1}/{len(API_KEYS)}...")
+        
+        try:
+            genai.configure(api_key=key.strip())
+            model = genai.GenerativeModel(MODEL)
+            
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.7,
+                    top_p=0.8,
+                    top_k=40,
                 )
-                
-                if not response.parts:
-                    raise Exception("Respuesta vacía de Gemini")
-                
-                answer = response.text.strip()
-                print(f"✅ ÉXITO con clave {i+1}")
-                print(f"📝 Respuesta preview: {answer[:80]}...")
-                return answer  # ← CORRECCIÓN: Devuelve la respuesta de Gemini
-
-            except Exception as e:
-                error_type = type(e).__name__
-                print(f"❌ Error con clave {i+1}: {error_type}")
-                continue
-        
-        # Si llegamos aquí, TODAS las claves fallaron
-        print("❌ Todas las claves Gemini fallaron, usando respuestas predeterminadas")
-        return generar_respuesta_predeterminada(prompt)
-        
-    except Exception as e:
-        return generar_respuesta_predeterminada(prompt)  # ← CORRECCIÓN: Esta línea estaba mal indentada
-
-def generar_respuesta_predeterminada(prompt: str, results=None, filters=None) -> str:
-    """Genera respuestas inteligentes cuando Gemini no está disponible"""
-    prompt_lower = prompt.lower()
-    
-    if results and len(results) > 0:
-        # Si hay resultados de búsqueda
-        casas_count = sum(1 for r in results if r.get('tipo') == 'casa')
-        deptos_count = sum(1 for r in results if r.get('tipo') == 'departamento')
-        
-        if casas_count > 0:
-            respuesta = f"🏡 **Encontré {casas_count} casas para vos:**\n\n"
-            for prop in results[:3]:  # Mostrar primeras 3
-                if prop.get('tipo') == 'casa':
-                    respuesta += f"• **{prop['title']}** - ${prop['price']:,.0f} - {prop['rooms']} amb. - {prop['sqm']} m²\n"
-                    respuesta += f"  📍 {prop['neighborhood']} | {prop['operacion'].title()}\n\n"
+            )
             
-            respuesta += "¿Te interesa alguna de estas casas? Podés pedirme más detalles sobre cualquiera de ellas. ¿O preferís que ajuste los filtros?"
-            return respuesta
-    
-    # Respuestas generales basadas en el prompt
-    if any(word in prompt_lower for word in ['hola', 'buenas', 'hello']):
-        return "¡Hola! 👋 Soy Dante, tu asistente de Dante Propiedades. Tenemos 16 propiedades disponibles. ¿En qué puedo ayudarte?"
-    
-    elif any(word in prompt_lower for word in ['casa', 'casas']):
-        return "🏡 **Tenemos 4 casas disponibles:**\n\n• Casa en Nuñez - $520,000 - 3 ambientes\n• Casa en Belgrano R - $650,000 - 4 ambientes\n• Casa en Vicente López - $720,000 - 4 ambientes\n• Casaquinta en San Isidro - $850,000 - 5 ambientes\n\n¿Te interesa alguna en particular?"
-    
-    elif any(word in prompt_lower for word in ['departamento', 'depto']):
-        return "🏢 **Departamentos disponibles:** Desde $120,000 hasta $950,000. ¿Qué barrio te interesa?"
-    
-    elif any(word in prompt_lower for word in ['precio', 'económico']):
-        return "💰 **Rangos de precio:**\n• Económicas: $120,000 - $200,000\n• Medio: $200,000 - $500,000\n• Premium: $500,000 - $950,000\n\n¿Qué rango buscás?"
-    
-    else:
-        return "🤖 **¡Hola! Soy Dante Propiedades**\n\nPuedo ayudarte a encontrar tu propiedad ideal. Contamos con casas, departamentos, PHs y terrenos en varios barrios. ¿Qué tipo de propiedad estás buscando?"
+            if not response.parts:
+                raise Exception("Respuesta vacía de Gemini")
+            
+            answer = response.text.strip()
+            print(f"✅ Éxito con clave {i+1}")
+            
+            return answer
 
+        except Exception as e:
+            error_type = type(e).__name__
+            
+            # 🔥 MENSAJES MÁS LIMPIOS
+            if "ResourceExhausted" in error_type or "429" in str(e):
+                print(f"❌ Clave {i+1} agotada")
+            elif "PermissionDenied" in error_type or "401" in str(e):
+                print(f"❌ Clave {i+1} no autorizada") 
+            else:
+                print(f"❌ Clave {i+1} error: {error_type}")
+            
+            continue
+    
+    return "❌ Todas las claves agotadas. Intente más tarde."
 
 def diagnosticar_problemas():
     """Función de diagnóstico"""
@@ -1004,21 +971,17 @@ def detect_filters(text_lower: str) -> Dict[str, Any]:
 # ✅ ENDPOINTS MEJORADOS
 @app.get("/status")
 def status():
-    """Endpoint de estado del servicio - VERSIÓN SEGURA"""
-    # 🔥 NO probar Gemini para evitar que el endpoint falle
-    gemini_status = "CONFIGURADO"
-    
-    # Verificar claves sin usar Gemini
-    claves_info = {
-        "total_claves": len(API_KEYS),
-        "claves_muestra": [key[:8] + "..." for key in API_KEYS],
-        "clave_expirada_detectada": any("AIzaSyCNHu" in key for key in API_KEYS)
-    }
+    """Endpoint de estado del servicio"""
+    test_prompt = "Respondé solo con OK"
+    try:
+        response = call_gemini_with_rotation(test_prompt)
+        gemini_status = "OK" if "OK" in response else "ERROR"
+    except Exception as e:
+        gemini_status = f"ERROR: {str(e)}"
     
     return {
         "status": "activo",
         "gemini_api": gemini_status,
-        "claves_info": claves_info,
         "uptime_seconds": metrics.get_uptime(),
         "total_requests": metrics.requests_count,
         "successful_requests": metrics.successful_requests,
@@ -1061,117 +1024,6 @@ def get_logs(limit: int = 10, channel: Optional[str] = None):
         return [dict(r) for r in rows]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo logs: {str(e)}")
-
-
-
-@app.get("/debug-nuclear")
-async def debug_nuclear():
-    """Diagnóstico extremo para ver QUÉ está pasando"""
-    import google.generativeai as genai
-    
-    resultados = {
-        "claves_configuradas": [],
-        "claves_operativas": [],
-        "claves_fallidas": [],
-        "variables_entorno": {}
-    }
-    
-    # Verificar claves en API_KEYS
-    for clave in API_KEYS:
-        try:
-            genai.configure(api_key=clave)
-            model = genai.GenerativeModel(MODEL)
-            response = model.generate_content("Test", request_options={"timeout": 5})
-            resultados["claves_operativas"].append(clave[:20] + "...")
-        except Exception as e:
-            resultados["claves_fallidas"].append({
-                "clave": clave[:20] + "...",
-                "error": type(e).__name__
-            })
-    
-    # Verificar variables de entorno
-    for key, value in os.environ.items():
-        if any(term in key.upper() for term in ['API', 'KEY']):
-            resultados["variables_entorno"][key] = "PRESENTE" if value else "VACÍA"
-    
-    return resultados
-
-
-@app.get("/debug-config")
-async def debug_config():
-    """Endpoint seguro que NO usa Gemini"""
-    return {
-        "api_keys_cargadas": len(API_KEYS),
-        "claves": [key[:10] + "..." for key in API_KEYS],
-        "clave_expirada_detectada": any("AIzaSyCNHu" in key for key in API_KEYS),
-        "endpoint": ENDPOINT,
-        "modelo": MODEL,
-        "estado": "✅ CONFIGURADO" if API_KEYS and not any("AIzaSyCNHu" in key for key in API_KEYS) else "❌ PROBLEMA"
-    }
-
-    
-
-
-# Añade esto EN CUALQUIER PARTE donde veas otros @app.get
-@app.get("/test-simple")
-async def test_simple():
-    """Endpoint simple de prueba"""
-    return {
-        "message": "✅ Backend funcionando",
-        "timestamp": datetime.now().isoformat(),
-        "claves_cargadas": len(API_KEYS)
-    }
-
-@app.get("/listar-rutas")
-async def listar_rutas():
-    routes = []
-    for route in app.routes:
-        if hasattr(route, 'methods'):
-            routes.append({
-                "path": route.path,
-                "methods": list(route.methods)
-            })
-    return {"rutas_disponibles": routes}
-
-
-
-
-# 🔥 AÑADE ESTO DONDE ESTÁN LOS OTROS @app.get
-
-@app.get("/test")
-def test_endpoint():
-    return {"message": "✅ TEST FUNCIONA", "timestamp": "ahora"}
-
-# 🔥 🔥 🔥 AÑADE ESTO AL FINAL DEL ARCHIVO 🔥 🔥 🔥
-
-@app.get("/debug-claves")
-async def debug_claves():
-    return {
-        "claves_cargadas": len(API_KEYS),
-        "claves_actuales": [key[:15] + "..." for key in API_KEYS],
-        "clave_expirada_presente": any("AIzaSyCNHu" in key for key in API_KEYS),
-        "estado": "❌ PROBLEMA" if any("AIzaSyCNHu" in key for key in API_KEYS) else "✅ OK"
-    }
-
-@app.get("/test-simple")
-async def test_simple():
-    return {"message": "✅ Este endpoint SÍ existe"}
-
-
-@app.get("/test-config")
-async def test_config():
-    """Endpoint simple que NO usa Gemini"""
-    return {
-        "api_keys_cargadas": len(API_KEYS),
-        "claves": [key[:10] + "..." for key in API_KEYS],
-        "clave_expirada_detectada": any("AIzaSyCNHu" in key for key in API_KEYS),
-        "endpoint": ENDPOINT,
-        "modelo": MODEL
-    }
-
-
-
-
 
 @app.get("/properties")
 def get_properties(
@@ -1684,5 +1536,22 @@ app.openapi = custom_openapi
 # ✅ INICIO
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8001))  # ← Cambia a 8001
-    uvicorn.run("main:app", host="0.0.0.0", port=port, access_log=True)
+    
+    print("🚀 INICIANDO EN MODO PRODUCCIÓN/RENDER")
+    print(f"🔍 Directorio: {os.getcwd()}")
+    print(f"🔍 Archivos: {os.listdir('.')}")
+    
+    # Diagnóstico completo
+    diagnosticar_problemas()
+    
+    port = int(os.environ.get("PORT", 8000))
+    print(f"🎯 Servidor iniciando en puerto: {port}")
+    
+    # En producción, reload=False
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=port, 
+        reload=False,  # ⚠️ IMPORTANTE: False en producción
+        access_log=True
+    )
