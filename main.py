@@ -89,29 +89,40 @@ def call_gemini_with_rotation(prompt: str) -> str:
     except Exception as e:
         return generar_respuesta_predeterminada(prompt)  # ← CORRECCIÓN: Esta línea estaba mal indentada
 
-def generar_respuesta_predeterminada(prompt: str) -> str:
-    """Genera respuestas útiles cuando Gemini no está disponible"""
+def generar_respuesta_predeterminada(prompt: str, results=None, filters=None) -> str:
+    """Genera respuestas inteligentes cuando Gemini no está disponible"""
     prompt_lower = prompt.lower()
     
+    if results and len(results) > 0:
+        # Si hay resultados de búsqueda
+        casas_count = sum(1 for r in results if r.get('tipo') == 'casa')
+        deptos_count = sum(1 for r in results if r.get('tipo') == 'departamento')
+        
+        if casas_count > 0:
+            respuesta = f"🏡 **Encontré {casas_count} casas para vos:**\n\n"
+            for prop in results[:3]:  # Mostrar primeras 3
+                if prop.get('tipo') == 'casa':
+                    respuesta += f"• **{prop['title']}** - ${prop['price']:,.0f} - {prop['rooms']} amb. - {prop['sqm']} m²\n"
+                    respuesta += f"  📍 {prop['neighborhood']} | {prop['operacion'].title()}\n\n"
+            
+            respuesta += "¿Te interesa alguna de estas casas? Podés pedirme más detalles sobre cualquiera de ellas. ¿O preferís que ajuste los filtros?"
+            return respuesta
+    
+    # Respuestas generales basadas en el prompt
     if any(word in prompt_lower for word in ['hola', 'buenas', 'hello']):
-        return "¡Hola! 👋 Soy tu asistente de Dante Propiedades. Tenemos 16 propiedades disponibles. ¿En qué puedo ayudarte?"
+        return "¡Hola! 👋 Soy Dante, tu asistente de Dante Propiedades. Tenemos 16 propiedades disponibles. ¿En qué puedo ayudarte?"
     
-    elif any(word in prompt_lower for word in ['propiedad', 'departamento', 'casa', 'ph', 'terreno']):
-        return "¡Perfecto! 📍 Tenemos propiedades en Palermo, Belgrano, Recoleta, Colegiales y más. ¿Buscás algo específico por barrio, precio o ambientes?"
+    elif any(word in prompt_lower for word in ['casa', 'casas']):
+        return "🏡 **Tenemos 4 casas disponibles:**\n\n• Casa en Nuñez - $520,000 - 3 ambientes\n• Casa en Belgrano R - $650,000 - 4 ambientes\n• Casa en Vicente López - $720,000 - 4 ambientes\n• Casaquinta en San Isidro - $850,000 - 5 ambientes\n\n¿Te interesa alguna en particular?"
     
-    elif any(word in prompt_lower for word in ['precio', 'económico', 'barato']):
-        return "💲 Contamos con opciones desde $120,000 hasta $950,000. ¿Qué rango de precio tenés en mente?"
+    elif any(word in prompt_lower for word in ['departamento', 'depto']):
+        return "🏢 **Departamentos disponibles:** Desde $120,000 hasta $950,000. ¿Qué barrio te interesa?"
     
-    elif any(word in prompt_lower for word in ['palermo', 'belgrano', 'recoleta', 'colegiales']):
-        return "📍 ¡Excelente elección! Tenemos propiedades en esa zona. ¿Buscás alquiler o venta?"
+    elif any(word in prompt_lower for word in ['precio', 'económico']):
+        return "💰 **Rangos de precio:**\n• Económicas: $120,000 - $200,000\n• Medio: $200,000 - $500,000\n• Premium: $500,000 - $950,000\n\n¿Qué rango buscás?"
     
     else:
-        return "¡Hola! Soy Dante Propiedades 🏠. Te ayudo a encontrar tu propiedad ideal. Podés consultarme por: barrios, precios, tipos de propiedad (departamento, casa, PH) o cantidad de ambientes. ¿Qué necesitás?"
-
-
-
-
-
+        return "🤖 **¡Hola! Soy Dante Propiedades**\n\nPuedo ayudarte a encontrar tu propiedad ideal. Contamos con casas, departamentos, PHs y terrenos en varios barrios. ¿Qué tipo de propiedad estás buscando?"
 
 
 def diagnosticar_problemas():
