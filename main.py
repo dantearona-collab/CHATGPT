@@ -19,9 +19,7 @@ from pydantic import BaseModel, Field
 
 # TUS 3 CLAVES NUEVAS QUE FUNCIONAN
 API_KEYS = [
-    "AIzaSyB5rN9lVhki8mnw3tSHDBtBvnVfI_vY5JU",
-    "AIzaSyBa_XEELLVFZOtB7Qd7qmSSnNYFQL4-ww8", 
-    "AIzaSyCgO-mUkizhQNZNMhgacQMN7aUhAWaUKUk"
+    "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"
 ]
 
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent"
@@ -82,7 +80,7 @@ def call_gemini_with_rotation(prompt: str) -> str:
                 print(f"❌ Error con clave {i+1}: {error_type}")
                 continue
         
-        return "❌ Todas las claves fallaron. Por favor, intentá nuevamente."
+        return "¡Hola! Soy tu asistente de Dante Propiedades. Tenemos propiedades en Palermo, Belgrano, Recoleta y más. ¿Buscás algo específico? Podés preguntar por propiedades por barrio, precio o tipo."
         
     except Exception as e:
         return f"❌ Error general: {type(e).__name__}: {str(e)}"
@@ -1646,14 +1644,5 @@ app.openapi = custom_openapi
 # ✅ INICIO
 if __name__ == "__main__":
     import uvicorn
-    
-    print("🚀 INICIANDO SERVIDOR DANTE PROPIEDADES")
     port = int(os.environ.get("PORT", 8000))
-    
-    uvicorn.run(
-        "main:app", 
-        host="0.0.0.0", 
-        port=port, 
-        reload=False,
-        access_log=True
-    )
+    uvicorn.run("main:app", host="0.0.0.0", port=port, access_log=True)
