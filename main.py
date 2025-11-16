@@ -19,7 +19,8 @@ from pydantic import BaseModel, Field
 
 # TUS 3 CLAVES NUEVAS QUE FUNCIONAN
 API_KEYS = [
-    "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig"
+    "AIzaSyALNEvJuxr5FYX6q04XAF6ppzkf4avnOig", "AIzaSyAoC9RD4HPE7l5wY8RcnMHS7F1BeXj7ea8", 
+    "AIzaSyDnnMnR6TMAAW5Cdh7izJ9V_8N_61UJh_w"
 ]
 
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent"
@@ -72,8 +73,8 @@ def call_gemini_with_rotation(prompt: str) -> str:
                     raise Exception("Respuesta vacía de Gemini")
                 
                 answer = response.text.strip()
-                print(f"✅ ÉXITO con clave {i+1}")
-                return answer
+                print("❌ Todas las claves Gemini fallaron, usando respuestas predeterminadas")
+                return generar_respuesta_predeterminada(prompt)
 
             except Exception as e:
                 error_type = type(e).__name__
@@ -82,8 +83,33 @@ def call_gemini_with_rotation(prompt: str) -> str:
         
         return "¡Hola! Soy tu asistente de Dante Propiedades. Tenemos propiedades en Palermo, Belgrano, Recoleta y más. ¿Buscás algo específico? Podés preguntar por propiedades por barrio, precio o tipo."
         
-    except Exception as e:
-        return f"❌ Error general: {type(e).__name__}: {str(e)}"
+     except Exception as e:
+        return generar_respuesta_predeterminada(prompt)
+
+def generar_respuesta_predeterminada(prompt: str) -> str:
+    """Genera respuestas útiles cuando Gemini no está disponible"""
+    prompt_lower = prompt.lower()
+    
+    if any(word in prompt_lower for word in ['hola', 'buenas', 'hello']):
+        return "¡Hola! 👋 Soy tu asistente de Dante Propiedades. Tenemos 16 propiedades disponibles. ¿En qué puedo ayudarte?"
+    
+    elif any(word in prompt_lower for word in ['propiedad', 'departamento', 'casa', 'ph', 'terreno']):
+        return "¡Perfecto! 📍 Tenemos propiedades en Palermo, Belgrano, Recoleta, Colegiales y más. ¿Buscás algo específico por barrio, precio o ambientes?"
+    
+    elif any(word in prompt_lower for word in ['precio', 'económico', 'barato']):
+        return "💲 Contamos con opciones desde $120,000 hasta $950,000. ¿Qué rango de precio tenés en mente?"
+    
+    elif any(word in prompt_lower for word in ['palermo', 'belgrano', 'recoleta', 'colegiales']):
+        return "📍 ¡Excelente elección! Tenemos propiedades en esa zona. ¿Buscás alquiler o venta?"
+    
+    else:
+        return "¡Hola! Soy Dante Propiedades 🏠. Te ayudo a encontrar tu propiedad ideal. Podés consultarme por: barrios, precios, tipos de propiedad (departamento, casa, PH) o cantidad de ambientes. ¿Qué necesitás?"
+
+
+
+
+
+
 
 def diagnosticar_problemas():
     """Función de diagnóstico"""
