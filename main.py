@@ -73,18 +73,21 @@ def call_gemini_with_rotation(prompt: str) -> str:
                     raise Exception("Respuesta vacía de Gemini")
                 
                 answer = response.text.strip()
-                print("❌ Todas las claves Gemini fallaron, usando respuestas predeterminadas")
-                return generar_respuesta_predeterminada(prompt)
+                print(f"✅ ÉXITO con clave {i+1}")
+                print(f"📝 Respuesta preview: {answer[:80]}...")
+                return answer  # ← CORRECCIÓN: Devuelve la respuesta de Gemini
 
             except Exception as e:
                 error_type = type(e).__name__
                 print(f"❌ Error con clave {i+1}: {error_type}")
                 continue
         
-        return "¡Hola! Soy tu asistente de Dante Propiedades. Tenemos propiedades en Palermo, Belgrano, Recoleta y más. ¿Buscás algo específico? Podés preguntar por propiedades por barrio, precio o tipo."
-        
-     except Exception as e:
+        # Si llegamos aquí, TODAS las claves fallaron
+        print("❌ Todas las claves Gemini fallaron, usando respuestas predeterminadas")
         return generar_respuesta_predeterminada(prompt)
+        
+    except Exception as e:
+        return generar_respuesta_predeterminada(prompt)  # ← CORRECCIÓN: Esta línea estaba mal indentada
 
 def generar_respuesta_predeterminada(prompt: str) -> str:
     """Genera respuestas útiles cuando Gemini no está disponible"""
@@ -1670,5 +1673,5 @@ app.openapi = custom_openapi
 # ✅ INICIO
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 8001))  # ← Cambia a 8001
     uvicorn.run("main:app", host="0.0.0.0", port=port, access_log=True)
